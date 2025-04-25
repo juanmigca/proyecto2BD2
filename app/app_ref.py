@@ -1,687 +1,249 @@
-from typing import Union
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import string
+import time
+
+import streamlit as st
+import pandas as pd
 import random
-import json
-import os
-import pickle
-from othello_game import OthelloGame
+import numpy as np
+import time
+import requests
 
-app = FastAPI()
+#host = 'http://localhost:8000'
+host = 'http://ec2-34-204-14-38.compute-1.amazonaws.com'
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=['*'],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=[""]
+st.session_state.game_id = st.session_state.get('game_id', '')
+st.session_state.game_status = st.session_state.get('game_id', 'new')
+st.session_state.session_status = st.session_state.get('session_status', 'open')
+st.session_state.classification = st.session_state.get('classification', [])
+st.session_state.matches = st.session_state.get('matches', [])
+
+def start_game(game_id):
+
+    if _game_id == '':
+
+        st.toast('Empty text input', icon="⚠️")
+
+    else :
+        st.session_state.game_id = _game_id
+        game_info = requests.post(host + '/game/game_info?session_name=' + _game_id).json()
+
+        if game_info['status'] == 501:
+            st.session_state.game_status = 'New Game'
+            new_game = requests.post(host + '/game/new_game?session_name=' + _game_id).json()
+
+        response = requests.post(host + '/game/classification?session_name=' + _game_id).json()
+
+        if 'data' in response:
+            st.session_state.classification = response['data']
+        else:
+            st.session_state.classification = []
+
+def refresh_classif(game_id):
+    response = requests.post(host + '/game/classification?session_name=' + _game_id).json()
+    if 'data' in response:
+        st.session_state.classification = response['data']
+    else:
+        st.session_state.classification = []
+
+def remove_player(game_id, player_id):
+    if game_id == '' :
+        pass
+    elif player_id == '' and game_id != '':
+        st.toast('Empty text input', icon="⚠️")
+    else:
+        response = requests.post(host + '/session/eject?session_name=' + game_id + '&player_name=' + player_id).json()
+        refresh_classif(game_id)
+
+def get_boards(session_name):
+    url = host + '/game/boards?session_name=' + session_name
+    response = requests.post(url)
+    if response.status_code == 200:
+        print(response.json())
+        return response.json()
+
+    else:
+        return []
+    
+def display_boards(boards):
+    for board_info in boards:
+        st.subheader(f"Match ID: {board_info['match_id']}")
+        st.write(f"White Player (⬤): {board_info['white_player']} - Score: {board_info['white_score']} | Black Player (◯): {board_info['black_player']} - Score: {board_info['black_score']}")
+        
+        # Convert board to DataFrame and replace values
+        board = pd.DataFrame(board_info["board"])
+        board = board.replace({0: "", -1: "◯", 1: "⬤"})
+        
+        st.table(board)
+
+def display_boards_side_by_side(boards):
+    cols = st.columns(4)  # Adjust the number of columns here
+    for i, board_info in enumerate(boards):
+        col = cols[i % 4]  # Use modulo to alternate columns
+        with col:
+            if board_info['game_over']:
+                st.subheader(f"Match ID: {board_info['match_id']} 🟢")
+            else:
+                st.subheader(f"Match ID: {board_info['match_id']} 🟡")
+            st.write(f"White Player (⬤): {board_info['white_player']} - Score: {board_info['white_score']}")
+            st.write(f"Black Player (◯): {board_info['black_player']} - Score: {board_info['black_score']}")
+            if board_info['game_over']:
+                if board_info['black_score'] > board_info['white_score']:
+                    st.write(f"¡Winner: {board_info['black_player']} ◯!")
+                else:
+                    st.write(f"¡Winner: {board_info['white_player']} ⬤!")
+            
+            # Convert board to DataFrame and replace values
+            board = pd.DataFrame(board_info["board"])
+            board = board.replace({0: "", -1: "◯", 1: "⬤"})
+            
+            st.table(board)
+#
+# def refresh_matches():
+#     pass
+#
+# def close_session():
+#
+#     if st.session_state.session_status == 'open':
+#         st.session_state.session_status = 'close'
+#         close_session = requests.post(host + '/game/close_registration?session_name=' + st.session_state.game_id)
+#     # else:
+#     #     st.session_state.session_status = 'open'
+#     #     close_session = requests.post(host + '/game/open_registration?session_name=' + st.session_state.game_id)
+#
+#
+#
+# def pair_players():
+#     pair = requests.post(host+ '/game/pair_players?session_name=' + st.session_state.game_id)
+
+st.set_page_config(page_title='Othello Game', page_icon='🎲', layout='wide', initial_sidebar_state='auto')
+
+
+
+_game_id = st.text_input('Enter game id')
+
+start_button =  st.button('Start game', on_click=start_game(_game_id))
+
+
+
+st.title(f'{st.session_state.game_id}')
+
+col1, col2,col3 = st.columns([4,10,2])
+
+with col1:
+    st.subheader('Classification')
+with col2:
+    if st.button('Clear Scores and Matches', key = 'clear_scores'):
+        response = requests.post(host + '/game/clear_scores_and_matches?session_name=' + st.session_state.game_id)
+        if response.status_code == 200:
+            response = response.json()
+            if 'data' in response:
+                st.session_state.classification = response['data']
+            else:
+                st.session_state.classification = []
+with col3:
+    if st.button('Refresh', key = 'classif_refresh'):
+        response = requests.post(host + '/game/classification?session_name=' + st.session_state.game_id)
+        if response.status_code == 200:
+            response = response.json()
+            if 'data' in response:
+                st.session_state.classification = response['data']
+            else:
+                st.session_state.classification = []
+
+
+st.dataframe(
+    pd.DataFrame(st.session_state.classification)
+    , column_config={
+            "name" : "Player"
+            , "played" : st.column_config.NumberColumn('Played')
+            , "wins" : st.column_config.NumberColumn('Won 🥇', format = '%d')
+            , "draws" : st.column_config.NumberColumn('Drawn 🤝', format = '%d')
+            , "losses" : st.column_config.NumberColumn('Lost 😿', format = '%d')
+            , "points" : st.column_config.NumberColumn('Points 🏆')
+        }
+        , use_container_width=True
+        , hide_index=True
 )
 
-othello_session_data_structure = {
-    'status' : 'active'
-    , 'registration' : 'open'
-    , 'round' : 'hold'
-    , 'players' : []
-    , 'league' : []
-    # league[{player, wins, loses, ties, points}]
-}
+_remove_player = st.text_input('Remove player')
 
-### API Management
+remove_button = st.button('Remove player', on_click=remove_player(_game_id, _remove_player))
 
-@app.get("/root")
-def read_root():
-    return {'Status': 'Contemplating existence. Also, kind of active.'}
+st.subheader('Matches')
 
-### Game Management
-
-def active_games(session_name):
-    pass
+col1, col2, col3= st.columns([4,10,2])
 
 
-@app.post("/game/new_game")
-def new_game(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if not(os.path.exists(_session_path)):
-        os.makedirs(_session_path, exist_ok=True)
-        if os.path.exists(_session_path):
-            file_path = _session_path + '/session_variables.json'
-            with open(file_path, 'w') as file:
-                json.dump(othello_session_data_structure, file)
-            os.makedirs(_session_path + '/games', exist_ok=True)
-            return {
-                'status' : 200
-                , 'message' : 'New game has been created.'
-            }
+with col1:
+    # pair_button = st.button('Pair', key = 'pairing', type = 'primary',  on_click = pair_players())
+    if st.button('Pair', key = 'pairing', type = 'primary'):
+        if st.session_state.game_id ==  '':
+            st.toast('Invalid Game ID', icon="⚠️")
         else:
-            return {
-                'status': 502
-                , 'message': 'ERROR creating new game'
-            }
+            pair = requests.post(host + '/game/pair_players?session_name=' + st.session_state.game_id)
+            response = requests.post(host + '/game/current_matches?session_name=' + st.session_state.game_id).json()
+            st.session_state.matches = response['data']
 
-    else:
-        return {
-            'status' : 501
-            , 'message' : session_name + ' already exists.'
+with col3:
+    if st.button('Refresh', key = 'matches_refresh'):
+        if st.session_state.game_id ==  '':
+            st.toast('Invalid Game ID', icon="⚠️")
+        else:
+            response = requests.post(host + '/game/current_matches?session_name=' + st.session_state.game_id).json()
+            st.session_state.matches = response['data']
+
+st.dataframe(
+    pd.DataFrame(st.session_state.matches)
+    , column_config={
+            "name" : "Player"
+            , "played" : st.column_config.NumberColumn('Played')
+            , "wins" : st.column_config.NumberColumn('Won 🥇', format = '%d')
+            , "draws" : st.column_config.NumberColumn('Drawn 🤝', format = '%d')
+            , "losses" : st.column_config.NumberColumn('Lost 😿', format = '%d')
+            , "points" : st.column_config.NumberColumn('Points 🏆')
         }
+    , use_container_width=True
+    , hide_index=True
+)
 
-@app.post("/game/close_registration")
-def close_gamge(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        data['registration'] = 'close'
-        with open(file_path, 'w') as file:
-            json.dump(data, file)
+st.header("Othello Game Boards")
 
-        return {
-            'status': 200
-            , 'message': 'Session has been closed.'
-        }
-    else:
-        return {
-            'status' : 501
-            , 'message' : 'Session ID does not exist.'
-        }
+# Refresh and display the boards every few seconds if a session is active
+# Button to start/stop visualization
+if st.button("Toggle Visualization"):
+    st.session_state['visualize'] = not st.session_state.get('visualize', False)
 
-@app.post("/game/open_registration")
-def open_game(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-        data['registration'] = 'open'
-        with open(file_path, 'w') as file:
-            json.dump(data, file)
-
-        return {
-            'status': 200
-            , 'message': 'Session has been open.'
-        }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-@app.post("/game/game_info")
-def open_game(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if ('current_matches' in data) & (data['round'] == 'ready'):
-            if all(d.get('status') == 'done' for d in data['current_matches']):
-                data['round'] = 'hold'
+# Display boards if visualization is enabled
+if st.session_state.get("visualize", False):
+    st.subheader(f"Current Boards for Session: {st.session_state.game_id}")
+    board_placeholder = st.empty()
+    # If all games are done, continue the loop but stop refreshing the boards
+    all_done = False
+    boards = get_boards(st.session_state.game_id)['data']
+    with board_placeholder.container():
+        display_boards_side_by_side(boards)
 
 
-                for match in data['current_matches']:
-                    game_path = _session_path + '/games/' + match['match_id'] + '.pkl'
-                    with open(game_path, 'rb') as f:
-                        othello_game = pickle.load(f)
+    # Run visualization loop
+    while st.session_state['visualize']:
+        if not all_done:
+            boards = get_boards(st.session_state.game_id)['data']
+        
+            with board_placeholder.container():
+                display_boards_side_by_side(boards)
 
-                    _winner = othello_game.winner
-                    _whites = match['whites']
-                    _blacks = match['blacks']
-
-                    for index, _player in enumerate(data['league']):
-
-                        if (_player['name'] == _whites)|(_player['name'] == _blacks):
-
-                            if _winner == 'Tie':
-                                _player['draws'] += 1
-                            else:
-                                if _player['name'] == _winner:
-                                    _player['wins'] += 1
-                                else:
-                                    _player['losses'] += 1
-
-                            _player['points'] = (_player['wins']  * 3) + (_player['draws'])
-
-                        data['league'][index] = _player
-
-
-                with open(file_path, 'w') as file:
-                     json.dump(data, file)
-
-        return {
-            'status': 200
-            , 'message': 'Session status retrieved successfully.'
-            , 'session_status' : data['status']
-            , 'round_status': data['round']
-        }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-def random_pair(items):
-    _random_items = random.sample(items, len(items))
-    pairs = []
-    for i in range(0, len(_random_items) - 1, 2):
-        pairs.append([_random_items[i], _random_items[i+1]])
-    if len(_random_items) % 2 != 0:
-        pairs.append([_random_items[-1],])
-    return pairs
-
-def generate_random_string(length):
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
-
-@app.post("/game/pair_players")
-def pair_players(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if data['registration'] == 'not applicable any more':
-            return {
-                'status': 502
-                , 'message': 'Session must be closed to pair players'
-            }
-        else :
-            _players = data['players']
-            _random_pairs = random_pair(_players)
-            _matches = []
-            _benched = []
-            for pair in _random_pairs:
-                if len(pair) == 2:
-                    match_id = generate_random_string(10)
-                    _matches.append({
-                        'match_id': match_id
-                        , 'whites': pair[0]
-                        , 'blacks': pair[1]
-                        , 'status' : 'active'
-                    })
-
-                    game_path = _session_path + '/games/' + match_id + '.pkl'
-                    othello_game = OthelloGame(match_id, pair[0], pair[1])
-                    with open(game_path, 'wb') as f:
-                        # Serialize and save the object to the file
-                        pickle.dump(othello_game, f)
-
-                else:
-                    _benched.append(pair[0])
-            data['current_matches'] = _matches
-            data['bench'] = _benched
-
-            data['round'] = 'ready'
-
-            with open(file_path, 'w') as file:
-                json.dump(data, file)
-
-            return {
-                'status': 200
-                , 'message': 'Players paired successfully'
-            }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-### Player Management
-
-@app.post("/player/new_player")
-def new_player(session_name : str, player_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if player_name not in data['players']:
-            data['players'].append(player_name)
-
-            name_exists = any(player['name'] == player_name for player in data['league'])
-
-            if not name_exists:
-                data['league'].append({
-                    'name': player_name
-                    , 'wins': 0
-                    , 'draws': 0
-                    , 'losses': 0
-                    , 'points' : 0
-                })
-
-            with open(file_path, 'w') as file:
-                json.dump(data, file)
-            return {
-                'status': 200
-                , 'message': 'Player created successfully'
-            }
-        else :
-            return {
-                'status': 502
-                , 'message': 'User name not available'
-            }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-@app.post("/player/match_info")
-def match_info(session_name : str, player_name: str):
-
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if data['round'] == 'ready':
-
-            if player_name in data['bench']:
-                return {
-                    'status': 200
-                    , 'message': 'Match info retrieved successfully'
-                    , 'player_name': player_name
-                    , 'match' : 'bench'
-                    , 'symbol' : 0
-                    , 'match_status' : 'bench'
-                }
+        for board_info in boards:
+            #Check if all games are done
+            if board_info['game_over']:
+                all_done = True
             else:
-                if 'current_matches' in data:
-                    for match in data['current_matches']:
-                        if player_name == match['whites']:
+                all_done = False
+                break
+       
 
-                            return {
-                                'status': 200
-                                , 'message': 'Match info retrieved successfully'
-                                , 'player_name': player_name
-                                , 'match': match['match_id']
-                                , 'symbol': 1
-                                , 'match_status' : match['status']
-                            }
-                        if player_name == match['blacks']:
-                            return {
-                                'status': 200
-                                , 'message': 'Match info retrieved successfully'
-                                , 'player_name': player_name
-                                , 'match': match['match_id']
-                                , 'symbol': -1
-                                , 'match_status' : match['status']
-                            }
-
-                return {
-                    'status': 502
-                    , 'message': 'Missing Player'
-                }
-        if data['round'] == 'hold':
-            return {
-                'status': 200
-                , 'message': 'Match info retrieved successfully'
-                , 'player_name': player_name
-                , 'match': 'None'
-                , 'symbol': 0
-                , 'match_status': 'None'
-            }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-
-@app.post("/player/turn_to_move")
-def turn_to_move(session_name : str, player_name : str, match_id : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if player_name in data['players']:
-            if player_name in data['bench']:
-                return {
-                    'status': 200
-                    , 'message': 'You are currently benched in this session'
-                    , 'turn'  : False
-                }
-
-            if 'current_matches' in data:
-                for match in data['current_matches']:
-
-                    if ((player_name == match['whites']) | (player_name == match['blacks'])) & (match['match_id'] == match_id):
-                        game_path = _session_path + '/games/' + match_id + '.pkl'
-                        with open(game_path, 'rb') as f:
-                            othello_game = pickle.load(f)
-
-                        if (othello_game.current_player == 1) and (player_name == match['whites']):
-                            return {
-                                'status': 200
-                                , 'message': 'White Move'
-                                , 'turn' : True
-                                , 'game_over' : othello_game.game_over
-                                , 'winner' : othello_game.winner
-                                , 'board' : othello_game.board
-                                , 'score' : 'Whites : ' + str(othello_game.score[1]) + ' - Blacks : ' + str(othello_game.score[-1])
-                            }
-                        else :
-                            if (othello_game.current_player == -1) and (player_name == match['blacks']):
-                                return {
-                                    'status': 200
-                                    , 'message': 'Black Move'
-                                    , 'turn' : True
-                                    , 'game_over': othello_game.game_over
-                                    , 'winner': othello_game.winner
-                                    , 'board': othello_game.board
-                                    , 'score' : 'Whites : ' + str(othello_game.score[1]) + ' - Blacks : ' + str(othello_game.score[-1])
-                                }
-                            else :
-                                return {
-                                    'status': 200
-                                    , 'message': 'White Move' if othello_game.current_player == 1 else 'Black Move'
-                                    , 'turn': False
-                                    , 'game_over': othello_game.game_over
-                                    , 'winner': othello_game.winner
-                                    , 'score' : 'Whites : ' + str(othello_game.score[1]) + ' - Blacks : ' + str(othello_game.score[-1])
-                                }
-            return {
-                'status': 503
-                , 'message': 'Invalid User name - Match ID combination'
-            }
-        else:
-            return {
-                'status': 502
-                , 'message': 'Invalid User name'
-            }
-
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-    # return {
-    #         'game_status' : 'keep playing'
-    #         , 'message' : 'Turn to move'
-    #     }
-
-@app.post("/player/move")
-def move_coin(session_name : str, player_name : str, match_id : str, row : int, col : int):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        if player_name in data['players']:
-            if player_name in data['bench']:
-                return {
-                    'status': 200
-                    , 'message': 'You are currently benched in this session'
-                    , 'turn'  : False
-                }
-
-            for index, match in enumerate(data['current_matches']):
-
-                if ((player_name == match['whites']) or (player_name == match['blacks'])) and (match['match_id'] == match_id):
-                    game_path = _session_path + '/games/' + match_id + '.pkl'
-                    with open(game_path, 'rb') as f:
-                        othello_game = pickle.load(f)
-
-                    if ((othello_game.current_player == 1) & (player_name == match['whites'])) | ((othello_game.current_player == -1) & (player_name == match['blacks'])):
-
-                        flag, msg = othello_game.update_board(othello_game.current_player, row, col)
-                        if flag:
-
-                            if othello_game.game_over:
-                                data['current_matches'][index]['status'] = 'done'
-                                with open(file_path, 'w') as file:
-                                    json.dump(data, file)
-
-                            with open(game_path, 'wb') as f:
-                                pickle.dump(othello_game, f)
-                            return {
-                                'status': 200
-                                , 'message' : 'Piece moved successfully.'
-                            }
-                        else :
-                            if msg == 'INVALID':
-                                othello_game.strike()
-
-                                with open(game_path, 'wb') as f:
-                                    pickle.dump(othello_game, f)
-
-                                return {
-                                    'status': 504
-                                    , 'message': 'Invalid Move'
-                                }
-
-                            else:
-
-                                return {
-                                    'status': 401
-                                    , 'message': 'Lost by overtime'
-                                }
-
-            return {
-                'status': 503
-                , 'message': 'Invalid User name - Match ID combination'
-            }
-        else:
-            return {
-                'status': 502
-                , 'message': 'Invalid User name'
-            }
-
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-@app.post("/game/classification")
-def league_info(session_name: str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        return {
-            'status': 200
-            , 'message': 'Classification retrieved successfully.'
-            , 'data' : data['league']
-        }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-            , 'data': []
-        }
-
-@app.post("/game/end_match")
-def end_match(session_name : str, match_id : str, player_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        game_path = _session_path + '/games/' + match_id + '.pkl'
-        with open(game_path, 'rb') as f:
-            othello_game = pickle.load(f)
-
-        othello_game.game_over = True
-        othello_game.winner = player_name
-
-        with open(game_path, 'wb') as f:
-            pickle.dump(othello_game, f)
-
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        for index, _match in enumerate(data['current_matches']):
-            if _match['match_id'] == match_id:
-                _match['status'] = 'done'
-                data['current_matches'][index] = _match
-
-                with open(file_path, 'w') as file:
-                    json.dump(data, file)
-
-        return {
-            'status' : 200
-            , 'message' : 'Game end succesfully'
-        }
-
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-
-@app.post("/session/eject")
-def eject_player(session_name : str, player_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
+        # Refresh every second
         
-        if player_name in data['players']:
-            data['players'].remove(player_name)
-            
-            data['league'] = [player for player in data['league'] if player['name'] != player_name]
-            print(data)
-            with open(file_path, 'w') as file:
-                json.dump(data, file)
+        time.sleep(1)
 
-            return {
-                'status' : 200
-                , 'message' : 'Player removed successfully'
-            }
-        else:
-            return {
-                'status' : 502
-                , 'message' : 'Player not in specified session'
-            }
-
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-            , 'data': []
-        }
-
-@app.post("/game/current_matches")
-def matches_info(session_name: str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        _current_matches = []
-        for match in data['current_matches']:
-            game_path = _session_path + '/games/' + match['match_id'] + '.pkl'
-            with open(game_path, 'rb') as f:
-                othello_game = pickle.load(f)
-
-            match['white_score'] = othello_game.score[1]
-            match['black_score'] = othello_game.score[-1]
-
-            _current_matches.append(match)
-        return {
-            'status': 200
-            , 'message': 'Classification retrieved successfully.'
-            , 'data' : _current_matches
-        }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-            , 'data': []
-        }
-    
-
-@app.post("/game/boards")
-def board_info(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        _boards = []
-        for match in data['current_matches']:
-            game_path = _session_path + '/games/' + match['match_id'] + '.pkl'
-            with open(game_path, 'rb') as f:
-                othello_game = pickle.load(f)
-
-            _boards.append({
-                'match_id' : othello_game.gameid
-                , 'white_player' : othello_game.white_player
-                , 'black_player' : othello_game.black_player
-                , 'board' : othello_game.board
-                , 'white_score' : othello_game.score[1]
-                , 'black_score' : othello_game.score[-1]
-                , 'game_over' : othello_game.game_over
-            })
-
-        return {
-            'status': 200
-            , 'message': 'Boards retrieved successfully.'
-            , 'data': _boards
-        }
-
-@app.post("/game/clear_scores_and_matches")
-def clear_scores(session_name : str):
-    _session_path = '../sessions/' + session_name
-    if os.path.exists(_session_path):
-        file_path = _session_path + '/session_variables.json'
-        with open(file_path, 'r') as file:
-            data = json.load(file)
-
-        for index, player in enumerate(data['league']):
-            player['wins'] = 0
-            player['draws'] = 0
-            player['losses'] = 0
-            player['points'] = 0
-            data['league'][index] = player
-        
-        data['current_matches'] = []
-
-        with open(file_path, 'w') as file:
-            json.dump(data, file)
-
-        #remove all games
-        games_path = _session_path + '/games'
-        for game in os.listdir(games_path):
-            game_path = games_path + '/' + game
-            os.remove(game_path)
-
-        return {
-            'status': 200
-            , 'message': 'Scores cleared successfully.'
-            , 'data': data['league']
-        }
-    else:
-        return {
-            'status': 501
-            , 'message': 'Session ID does not exist.'
-        }
-    
-
-
-
-        
-
-
-# return {
-    #     'message' : 'Coin moved successfully.'
-    # }
-
-# @app.post("/match/status")
-# def match_status(session_name : str, match_id : str):
-#     return {
-#         'status' : 'on going'
-#         , 'message' : 'Match status retrieved successfully.'
-#     }
+        # Check if button was clicked again to stop visualization
+        if not st.session_state['visualize']:
+            break
