@@ -1,4 +1,5 @@
 import pymongo
+from utils import getCollection
 
 
     
@@ -19,6 +20,19 @@ def queryBuilder(id = None, name = None, cuisines = None):
         
     return args
 
+def getRestaurants(id = None, name = None, cuisines = None):
+    """
+    Returns a list of restaurants.
+    """
+    
+    restaruant_collection = getCollection('proyecto2bd', 'restaurants')
+    if restaruant_collection is None:
+        return None
+    args = queryBuilder(id, name, cuisines)
+  
+    restaurants = restaruant_collection.find(args)
+    return list(restaurants)
+ 
     
     
     
