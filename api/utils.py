@@ -18,14 +18,13 @@ def getMongoClient():
         print("Connected to MongoDB")
         return client
     except:
-        print("Error connecting to MongoDB")
+        print("Error connecting to MongoDB")    
         return None
 
-def getDatabase(db_name):
+def getDatabase(client, db_name):
     """
     Returns a MongoDB database.
     """
-    client = getMongoClient()
     if client is None:
         print("Error connecting to MongoDB")
         return None
@@ -36,12 +35,12 @@ def getDatabase(db_name):
         print("Error connecting to MongoDB")
         return None 
     
-def getCollection(db_name, collection_name):
+def getCollection(client, db_name, collection_name):
     """
     Returns a MongoDB collection.
     """
     
-    db = getDatabase(db_name)
+    db = getDatabase(client, db_name)
     if db is None:
         return None
     
