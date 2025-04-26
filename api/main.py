@@ -1,7 +1,8 @@
 from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from utils import getMongoClient, getCollection
+from fastapi import Query
+from utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
 from restaurant import getRestaurants, updateRestaurant, createRestaurant
 from models import Restaurant, User, Review, Order, MenuItem
@@ -36,6 +37,10 @@ app.add_middleware(
 
 ### API Management
 
+@app.get("/favicon.ico")
+async def favicon():
+    return {'status': 204}
+
 @app.get("/root")
 def read_root():
     return {'Status': 'Activo.'}
@@ -43,7 +48,7 @@ def read_root():
 ### Restaurants
 
 @app.get("/restaurants")
-def get_restaurants(id: Union[str, list, None] = None, name: Union[str, list, None] = None, cuisine: Union[str, list, None] = None):
+def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), cuisine: Union[str, list, None] = Query(default=None)):
     """
     Returns a list of restaurants.
     """
@@ -54,12 +59,15 @@ def get_restaurants(id: Union[str, list, None] = None, name: Union[str, list, No
     
     
     try:
+        print(id, name, cuisine)
         restaurants = getRestaurants(restaurant_collection, id, name, cuisine)
     except:
         return {'status': 500,
                 'message': 'Query execution error'}
     return {'status': 200, 
-            'data': list[restaurants]}
+            'data': restaurants}
+
+
 
 @app.patch("/restaurants/{restaurant_id}")
 def update_restaurant(restaurant_id: str, restaurant: Restaurant):
@@ -71,7 +79,7 @@ def update_restaurant(restaurant_id: str, restaurant: Restaurant):
         return {'status': 502,
                 'message': 'Error connecting to collection'}
     try:
-        updateRestaurant({restaurant_id}, restaurant_collection)
+        updateRestaurant(restaurant_collection, {restaurant_id}, restaurant)
     except:
         return {'status': 500,
                 'message': 'Error updating restaurant'}

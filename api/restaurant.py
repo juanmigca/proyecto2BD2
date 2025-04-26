@@ -1,7 +1,16 @@
 import pymongo
 from models import Restaurant
+from bson import ObjectId
+
+def serialize_restaurant(restaurant):
+    """
+    Converts MongoDB ObjectId and other types to JSON-serializable formats.
+    """
+    restaurant["_id"] = str(restaurant["_id"])
+    return restaurant
+
     
-def queryBuilder(id = None, name = None, cuisines = None):
+def queryBuilder(id = None, name = None, cuisine = None):
     args = {}
     if id is not None:
         if isinstance(id, list):
@@ -13,32 +22,35 @@ def queryBuilder(id = None, name = None, cuisines = None):
             args['name'] = {"$in": [n for n in name]}
         else:
             args['name'] = name
-    if cuisines is not None:
-        if isinstance(cuisines, list):
-            args['cuisines'] = {"$in": [cuisine for cuisine in cuisines]}
+    if cuisine is not None:
+        if isinstance(cuisine, list):
+            args['cuisines'] = {"$in": [cuisine for cuisine in cuisine]}
         else:
-            args['cuisines'] = cuisines
+            args['cuisines'] = cuisine
         
     return args
 
 
-def getRestaurants(collection, id = None, name = None, cuisines = None):
+def getRestaurants(collection, id = None, name = None, cuisine = None):
     """
     Returns a list of restaurants.
     """
-    
-    restaruant_collection = collection
-    if restaruant_collection is None:
-        raise ValueError
-    args = queryBuilder(id, name, cuisines)
-  
-    restaurants = restaruant_collection.find(args)
+
+    if collection is None:
+        raise ValueError('Collection is None')
+    args = queryBuilder(id, name, cuisine)
+    print(args)
+    cursor = collection.find(args).limit(10)
+    restaurants = []
+    for restaurant in cursor:
+        restaurants.append(serialize_restaurant(restaurant))
+
     return list(restaurants)
 
 def createRestaurant(collection, restaurant):
     
     if collection is None:
-        return None
+        raise ValueError('Collection is None')
     
     restaurant_dict = restaurant.dict()
     
@@ -59,7 +71,7 @@ def updateRestaurant(collection, id, restaurant):
     """
     
     if collection is None:
-        return None
+        raise ValueError('Collection is None')
     
     update_data = {k: v for k, v in restaurant.dict(exclude_unset=True).items() if v is not None}
 

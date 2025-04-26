@@ -24,7 +24,7 @@ class MenuItem(BaseModel):
     name: str
     price: float
     ingredients: List[Ingredient] 
-    addedToMenu: datetime = Field(default_factory=datetime.now())
+    addedToMenu: datetime = Field(default_factory=datetime.now)
     
 class Restaurant(BaseModel):
     id: str
