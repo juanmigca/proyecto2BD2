@@ -11,25 +11,25 @@ def queryBuilder(id=None, user_id=None, restaurant_id=None, rating=None):
     args = {}
     if id is not None:
         if isinstance(id, list) and len(id) > 1:
-            args['_id'] = {"$in": [ObjectId(i) for i in id]}
+            args['_id'] = {"$in": [int(i) for i in id]}
         elif isinstance(id, list) and len(id) == 1:
-            args['_id'] = ObjectId(id[0])
+            args['_id'] = int(id[0])
         else:
-            args['_id'] = ObjectId(id)
+            args['_id'] = int(id)
     if user_id is not None:
         if isinstance(user_id, list) and len(user_id) > 1:
-            args['userId'] = {"$in": [user_id for user_id in user_id]}
+            args['userId'] = {"$in": [int(user_id) for user_id in user_id]}
         elif isinstance(user_id, list) and len(user_id) == 1:
-            args['userId'] = user_id[0]
+            args['userId'] = int(user_id[0])
         else:
-            args['userId'] = user_id
+            args['userId'] = int(user_id)
     if restaurant_id is not None:
         if isinstance(restaurant_id, list) and len(restaurant_id) > 1:
-            args['restaurantId'] = {"$in": [restaurant_id for restaurant_id in restaurant_id]}
+            args['restaurantId'] = {"$in": [int(restaurant_id) for restaurant_id in restaurant_id]}
         elif isinstance(restaurant_id, list) and len(restaurant_id) == 1:
-            args['restaurantId'] = restaurant_id[0]
+            args['restaurantId'] = int(restaurant_id[0])
         else:
-            args['restaurantId'] = restaurant_id
+            args['restaurantId'] = int(restaurant_id)
     if rating is not None:
         if isinstance(rating, list) and len(rating) > 1:
             args['rating'] = {"$in": [rating for rating in rating]}
