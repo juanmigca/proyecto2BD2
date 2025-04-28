@@ -50,5 +50,28 @@ def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None
     for order in cursor:
         orders.append(serialize_document(order))
     return list(orders)
-#def createOrder(collection, order):
+def createOrder(collection, order):
+    """
+    Creates a new order in the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    order_dict = order.dict()
+    existing_order = collection.find_one({"_id": order_dict["_id"]})
+    if existing_order:
+        raise ValueError(f"Order with id {order_dict['_id']} already exists.")
+    result = collection.insert_one(order_dict)
+    return {"inserted_id": str(result.inserted_id)}
+def updateOrder(collection, id, order):
+    """
+    Updates an existing order in the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    order_dict = order.dict()
+    existing_order = collection.find_one({"_id": ObjectId(id)})
+    if not existing_order:
+        raise ValueError(f"Order with id {id} does not exist.")
+    result = collection.update_one({"_id": ObjectId(id)}, {"$set": order_dict})
+    return {"modified_count": result.modified_count}
    
