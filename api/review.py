@@ -1,7 +1,7 @@
 import pymongo
-from models import Restaurant
+from models import Review
 from bson import ObjectId
-def serialize_document(review):
+def serialize_document(review=Review):
     """
     Converts MongoDB ObjectId and other types to JSON-serializable formats.
     """

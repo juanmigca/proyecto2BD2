@@ -1,7 +1,7 @@
 import pymongo
 from models import Order
 from bson import ObjectId
-def serialize_document(order):
+def serialize_document(order=Order):
     """
     Converts MongoDB ObjectId and other types to JSON-serializable formats.
     """
@@ -50,13 +50,13 @@ def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None
     for order in cursor:
         orders.append(serialize_document(order))
     return list(orders)
-def createOrder(collection, order):
+def createOrder(collection, order=Order):
     """
     Creates a new order in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    order_dict = order.dict()
+    order_dict = order.model_dump()
     existing_order = collection.find_one({"_id": order_dict["_id"]})
     if existing_order:
         raise ValueError(f"Order with id {order_dict['_id']} already exists.")
@@ -74,9 +74,9 @@ def updateOrder(collection, id, order):
     update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
     if not update_fields:
         raise ValueError("No fields to update.")
-    result = collection.update_one({"_id": ObjectId(id)}, {"$set": update_fields})
+    result = collection.update_one({"_id": (id)}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
-def updateMultipleOrders(collection, ids, order):
+def updateMultipleOrders(collection, ids, order=Order):
     """
     Updates multiple orders in the database.
     """
@@ -87,7 +87,7 @@ def updateMultipleOrders(collection, ids, order):
     update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
     if not update_fields:
         raise ValueError("No fields to update.")
-    result = collection.update_many({"_id": {"$in": [ObjectId(id) for id in ids]}}, {"$set": update_fields})
+    result = collection.update_many({"_id": {"$in": [int(id) for id in ids]}}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
 def deleteOrder(collection, id):
     """
@@ -95,7 +95,7 @@ def deleteOrder(collection, id):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_one({"_id": ObjectId(id)})
+    result = collection.delete_one({"_id": int(id)})
     return {"deleted_count": result.deleted_count}
 def deleteMultipleOrders(collection, ids):
     """
@@ -103,5 +103,5 @@ def deleteMultipleOrders(collection, ids):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_many({"_id": {"$in": [ObjectId(id) for id in ids]}})
+    result = collection.delete_many({"_id": {"$in": [int(id) for id in ids]}})
     return {"deleted_count": result.deleted_count}
