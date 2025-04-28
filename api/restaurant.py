@@ -91,6 +91,25 @@ def updateRestaurant(collection, id, restaurant):
     )
 
     return result.modified_count
+def updateMultipleRestaurants(collection, ids, restaurant):
+    """
+    Updates multiple restaurants.
+    """
+    
+    if collection is None:
+        raise ValueError('Collection is None')
+    
+    update_data = {k: v for k, v in restaurant.dict(exclude_unset=True).items() if v is not None}
+
+    if not update_data:
+        return None
+
+    result = collection.update_many(
+        {"id": {"$in": ids}},           
+        {"$set": update_data} 
+    )
+
+    return result.modified_count
     
 
     
@@ -108,3 +127,18 @@ def getCuisines(collection):
         cuisines.append(serialize_document(cuisine))
 
     return list(cuisines)
+
+def deleteRestaurant(collection, id):
+    if collection is None:
+        raise ValueError('Collection is None')
+    
+    result = collection.delete_one({"id": id})
+    
+    return result.deleted_count
+def deletemultipleRestaurants(collection, ids):
+    if collection is None:
+        raise ValueError('Collection is None')
+    
+    result = collection.delete_many({"id": {"$in": ids}})
+    
+    return result.deleted_count
