@@ -2,7 +2,7 @@ import pymongo
 from models import Restaurant
 from bson import ObjectId
 
-def serialize_restaurant(restaurant):
+def serialize_document(restaurant):
     """
     Converts MongoDB ObjectId and other types to JSON-serializable formats.
     """
@@ -13,25 +13,32 @@ def serialize_restaurant(restaurant):
 def queryBuilder(id = None, name = None, cuisine = None):
     args = {}
     if id is not None:
-        if isinstance(id, list):
-            args['id'] = {"$in": [i for i in id]}
+        if isinstance(id, list) and len(id) > 1:
+            args['id'] = {"$in": [int(i) for i in id]}
+        elif isinstance(id, list) and len(id) == 1:
+            args['id'] = int(id[0])
         else:
-            args['id'] = id
+            args['id'] = int(id)
     if name is not None:
-        if isinstance(name, list):
+        if isinstance(name, list) and len(name) > 1:
             args['name'] = {"$in": [n for n in name]}
+        elif isinstance(name, list) and len(name) == 1:
+            args['name'] = name[0]
         else:
             args['name'] = name
     if cuisine is not None:
-        if isinstance(cuisine, list):
+        if isinstance(cuisine, list) and len(cuisine) > 1:
             args['cuisines'] = {"$in": [cuisine for cuisine in cuisine]}
+        elif isinstance(cuisine, list) and len(cuisine) == 1:
+            args['cuisines'] = cuisine[0]
         else:
             args['cuisines'] = cuisine
+    
         
     return args
 
 
-def getRestaurants(collection, id = None, name = None, cuisine = None):
+def getRestaurants(collection, id = None, name = None, cuisine = None, limit = 10):
     """
     Returns a list of restaurants.
     """
@@ -40,10 +47,10 @@ def getRestaurants(collection, id = None, name = None, cuisine = None):
         raise ValueError('Collection is None')
     args = queryBuilder(id, name, cuisine)
     print(args)
-    cursor = collection.find(args).limit(10)
+    cursor = collection.find(args).limit(limit)
     restaurants = []
     for restaurant in cursor:
-        restaurants.append(serialize_restaurant(restaurant))
+        restaurants.append(serialize_document(restaurant))
 
     return list(restaurants)
 
@@ -87,11 +94,17 @@ def updateRestaurant(collection, id, restaurant):
     
 
     
-
-
+def getCuisines(collection):
+    """
+    Returns a list of cuisines.
+    """
     
-        
-        
+    if collection is None:
+        raise ValueError('Collection is None')
     
+    cursor = collection.find()
+    cuisines = []
+    for cuisine in cursor:
+        cuisines.append(serialize_document(cuisine))
 
-    
+    return list(cuisines)

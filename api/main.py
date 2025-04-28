@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
 from utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from restaurant import getRestaurants, updateRestaurant, createRestaurant
+from restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
 from models import Restaurant, User, Review, Order, MenuItem
 
 
@@ -48,7 +48,7 @@ def read_root():
 ### Restaurants
 
 @app.get("/restaurants")
-def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), cuisine: Union[str, list, None] = Query(default=None)):
+def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), cuisine: Union[str, list, None] = Query(default=None), limit: int = Query(default=10)):
     """
     Returns a list of restaurants.
     """
@@ -60,7 +60,7 @@ def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Unio
     
     try:
         print(id, name, cuisine)
-        restaurants = getRestaurants(restaurant_collection, id, name, cuisine)
+        restaurants = getRestaurants(restaurant_collection, id, name, cuisine, limit)
     except:
         return {'status': 500,
                 'message': 'Query execution error'}
@@ -111,9 +111,25 @@ def create_restaurant(restaurant: Restaurant):
     return {'status': 200, 
             'message': f'Restaurant created'}
     
+### Cuisines
 
-
-
+@app.get("/cuisines")
+def get_cuisines():
+    """
+    Returns a list of cuisines.
+    """
+    cuisine_collection = getCollection(mongo_client, 'proyecto2bd', 'cuisines')
+    if cuisine_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        cuisines = getCuisines(cuisine_collection)
+    except:
+        return {'status': 500,
+                'message': 'Query execution error'}
+    return {'status': 200, 
+            'data': cuisines}
 
 
 

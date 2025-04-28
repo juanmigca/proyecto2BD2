@@ -4,9 +4,9 @@ from datetime import datetime
 from enum import Enum
 
 class Status(str, Enum):
-    COMPLETED = "Completed"
-    PENDING = "Pending"
-    CANCELED = "Canceled"
+    COMPLETED = "Entregado"
+    PENDING = "En Camino"
+    CANCELED = "Cancelado"
 
 class Location(BaseModel):
     type: str 
@@ -17,6 +17,12 @@ class Ingredient(BaseModel):
     name: str
     amount: float
     unitMeasure: str
+
+class Cuisines(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.now)
     
     
 class MenuItem(BaseModel):
