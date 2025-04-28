@@ -68,10 +68,40 @@ def updateOrder(collection, id, order):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    order_dict = order.dict()
     existing_order = collection.find_one({"_id": ObjectId(id)})
     if not existing_order:
         raise ValueError(f"Order with id {id} does not exist.")
-    result = collection.update_one({"_id": ObjectId(id)}, {"$set": order_dict})
+    update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
+    if not update_fields:
+        raise ValueError("No fields to update.")
+    result = collection.update_one({"_id": ObjectId(id)}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
-   
+def updateMultipleOrders(collection, ids, order):
+    """
+    Updates multiple orders in the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    if not ids:
+        raise ValueError("No ids provided.")
+    update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
+    if not update_fields:
+        raise ValueError("No fields to update.")
+    result = collection.update_many({"_id": {"$in": [ObjectId(id) for id in ids]}}, {"$set": update_fields})
+    return {"modified_count": result.modified_count}
+def deleteOrder(collection, id):
+    """
+    Deletes an order from the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    result = collection.delete_one({"_id": ObjectId(id)})
+    return {"deleted_count": result.deleted_count}
+def deleteMultipleOrders(collection, ids):
+    """
+    Deletes multiple orders from the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    result = collection.delete_many({"_id": {"$in": [ObjectId(id) for id in ids]}})
+    return {"deleted_count": result.deleted_count}
