@@ -14,25 +14,25 @@ def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
     args = {}
     if id is not None:
         if isinstance(id, list) and len(id) > 1:
-            args['_id'] = {"$in": [ObjectId(i) for i in id]}
+            args['_id'] = {"$in": [int(i) for i in id]}
         elif isinstance(id, list) and len(id) == 1:
-            args['_id'] = ObjectId(id[0])
+            args['_id'] = int(id[0])
         else:
-            args['_id'] = ObjectId(id)
+            args['_id'] = int(id)
     if user_id is not None:
         if isinstance(user_id, list) and len(user_id) > 1:
-            args['userId'] = {"$in": [user_id for user_id in user_id]}
+            args['userId'] = {"$in": [int(user_id) for user_id in user_id]}
         elif isinstance(user_id, list) and len(user_id) == 1:
-            args['userId'] = user_id[0]
+            args['userId'] = int(user_id[0])
         else:
-            args['userId'] = user_id
+            args['userId'] = int(user_id)
     if restaurant_id is not None:
         if isinstance(restaurant_id, list) and len(restaurant_id) > 1:
-            args['restaurantId'] = {"$in": [restaurant_id for restaurant_id in restaurant_id]}
+            args['restaurantId'] = {"$in": [int(restaurant_id) for restaurant_id in restaurant_id]}
         elif isinstance(restaurant_id, list) and len(restaurant_id) == 1:
-            args['restaurantId'] = restaurant_id[0]
+            args['restaurantId'] = int(restaurant_id[0])
         else:
-            args['restaurantId'] = restaurant_id
+            args['restaurantId'] = int(restaurant_id)
     if status is not None:
         if isinstance(status, list) and len(status) > 1:
             args['status'] = {"$in": [status for status in status]}
@@ -63,24 +63,56 @@ def createOrder(collection, order: Order):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    order_dict = order.dict()
+    order_dict = order.model_dump()
     existing_order = collection.find_one({"_id": order_dict["_id"]})
     if existing_order:
         raise ValueError(f"Order with id {order_dict['_id']} already exists.")
     result = collection.insert_one(order_dict)
     return {"inserted_id": str(result.inserted_id)}
 
-
-def updateOrder(collection, id, order):
+def updateOrder(collection, id, order=Order):
     """
     Updates an existing order in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    order_dict = order.dict()
     existing_order = collection.find_one({"_id": ObjectId(id)})
     if not existing_order:
         raise ValueError(f"Order with id {id} does not exist.")
-    result = collection.update_one({"_id": ObjectId(id)}, {"$set": order_dict})
+    update_fields = {k: v for k, v in order.model_dump(exclude_unset=True).items() if v is not None}
+    if not update_fields:
+        raise ValueError("No fields to update.")
+    result = collection.update_one({"_id": (id)}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
-   
+
+def updateMultipleOrders(collection, ids, order=Order):
+    """
+    Updates multiple orders in the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    if not ids:
+        raise ValueError("No ids provided.")
+    update_fields = {k: v for k, v in order.model_dump(exclude_unset=True).items() if v is not None}
+    if not update_fields:
+        raise ValueError("No fields to update.")
+    result = collection.update_many({"_id": {"$in": [int(id) for id in ids]}}, {"$set": update_fields})
+    return {"modified_count": result.modified_count}
+
+def deleteOrder(collection, id):
+    """
+    Deletes an order from the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    result = collection.delete_one({"_id": int(id)})
+    return {"deleted_count": result.deleted_count}
+
+def deleteMultipleOrders(collection, ids):
+    """
+    Deletes multiple orders from the database.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    result = collection.delete_many({"_id": {"$in": [int(id) for id in ids]}})
+    return {"deleted_count": result.deleted_count}

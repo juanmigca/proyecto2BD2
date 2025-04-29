@@ -54,7 +54,7 @@ class Order(BaseModel):
     orderedAt: datetime
     arrivedAt: datetime
     status: Status 
-    resraurantId: str
+    restaurantId: str
     items: List[MenuItem]
     subtotal: float
     tax: float
@@ -65,7 +65,7 @@ class Review(BaseModel):
     id: str
     userId: str
     restaurantId: Optional[str] = None
-    orederId: Optional[str] = None
+    orderId: Optional[str] = None
     stars: int = Field(..., ge=1, le=10)
     comment: str
     timestamp: datetime

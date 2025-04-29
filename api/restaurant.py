@@ -88,8 +88,7 @@ def updateRestaurant(collection, id, restaurant):
 
     return result.modified_count
 
-
-def updateMultipleRestaurants(collection, ids, restaurant):
+def updateMultipleRestaurants(collection, ids, restaurants):
     """
     Updates multiple restaurants.
     """
@@ -97,7 +96,7 @@ def updateMultipleRestaurants(collection, ids, restaurant):
     if collection is None:
         raise ValueError('Collection is None')
     
-    update_data = {k: v for k, v in restaurant.dict(exclude_unset=True).items() if v is not None}
+    update_data = {k: v for k, v in restaurants.dict(exclude_unset=True).items() if v is not None}
 
     if not update_data:
         return None
@@ -108,7 +107,7 @@ def updateMultipleRestaurants(collection, ids, restaurant):
     )
 
     return result.modified_count
-    
+ 
 
     
 def getCuisines(collection):
