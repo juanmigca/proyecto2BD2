@@ -7,6 +7,7 @@ def serialize_document(order=Order):
     """
     order["_id"] = str(order["_id"])
     return order
+
 def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
     args = {}
     if id is not None:
@@ -38,6 +39,7 @@ def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
         else:
             args['status'] = status
     return args
+
 def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None, limit=10):
     """
     Returns a list of orders.
@@ -50,6 +52,7 @@ def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None
     for order in cursor:
         orders.append(serialize_document(order))
     return list(orders)
+
 def createOrder(collection, order=Order):
     """
     Creates a new order in the database.
@@ -62,7 +65,8 @@ def createOrder(collection, order=Order):
         raise ValueError(f"Order with id {order_dict['_id']} already exists.")
     result = collection.insert_one(order_dict)
     return {"inserted_id": str(result.inserted_id)}
-def updateOrder(collection, id, order):
+
+def updateOrder(collection, id, order=Order):
     """
     Updates an existing order in the database.
     """
@@ -71,11 +75,12 @@ def updateOrder(collection, id, order):
     existing_order = collection.find_one({"_id": ObjectId(id)})
     if not existing_order:
         raise ValueError(f"Order with id {id} does not exist.")
-    update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
+    update_fields = {k: v for k, v in order.model_dump(exclude_unset=True).items() if v is not None}
     if not update_fields:
         raise ValueError("No fields to update.")
     result = collection.update_one({"_id": (id)}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
+
 def updateMultipleOrders(collection, ids, order=Order):
     """
     Updates multiple orders in the database.
@@ -84,11 +89,12 @@ def updateMultipleOrders(collection, ids, order=Order):
         raise ValueError('Collection is None')
     if not ids:
         raise ValueError("No ids provided.")
-    update_fields = {k: v for k, v in order.dict(exclude_unset=True).items() if v is not None}
+    update_fields = {k: v for k, v in order.model_dump(exclude_unset=True).items() if v is not None}
     if not update_fields:
         raise ValueError("No fields to update.")
     result = collection.update_many({"_id": {"$in": [int(id) for id in ids]}}, {"$set": update_fields})
     return {"modified_count": result.modified_count}
+
 def deleteOrder(collection, id):
     """
     Deletes an order from the database.
@@ -97,6 +103,7 @@ def deleteOrder(collection, id):
         raise ValueError('Collection is None')
     result = collection.delete_one({"_id": int(id)})
     return {"deleted_count": result.deleted_count}
+
 def deleteMultipleOrders(collection, ids):
     """
     Deletes multiple orders from the database.
