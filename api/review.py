@@ -58,7 +58,7 @@ def create_review(collection, review=Review):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    review_dict=review.to_dict()
+    review_dict=review.model_dump()
     existing = collection.find_one({"id": review_dict["id"]})
     if existing:
         raise ValueError('Restaurant with that id already exists')
@@ -71,7 +71,7 @@ def update_review(collection, id, review=Review):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    review_dict = review.to_dict()
+    review_dict = review.model_dump()
     result = collection.update_one({"_id": int(id)}, {"$set": review_dict})
     if result.matched_count == 0:
         raise ValueError(f"No review found with id {id}")
