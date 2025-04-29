@@ -39,6 +39,7 @@ class Restaurant(BaseModel):
     cuisines: Optional[List[str]] = None
     location: Optional[Location] = None
     menuItems: Optional[MenuItem] = None
+    rating: Optional[float] = None
 
 class User(BaseModel): 
     id: str

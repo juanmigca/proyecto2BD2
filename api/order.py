@@ -1,12 +1,15 @@
 import pymongo
 from models import Order
 from bson import ObjectId
+
 def serialize_document(order):
     """
     Converts MongoDB ObjectId and other types to JSON-serializable formats.
     """
     order["_id"] = str(order["_id"])
     return order
+
+
 def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
     args = {}
     if id is not None:
@@ -38,6 +41,8 @@ def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
         else:
             args['status'] = status
     return args
+
+
 def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None, limit=10):
     """
     Returns a list of orders.
@@ -50,7 +55,9 @@ def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None
     for order in cursor:
         orders.append(serialize_document(order))
     return list(orders)
-def createOrder(collection, order):
+
+
+def createOrder(collection, order: Order):
     """
     Creates a new order in the database.
     """
@@ -62,6 +69,8 @@ def createOrder(collection, order):
         raise ValueError(f"Order with id {order_dict['_id']} already exists.")
     result = collection.insert_one(order_dict)
     return {"inserted_id": str(result.inserted_id)}
+
+
 def updateOrder(collection, id, order):
     """
     Updates an existing order in the database.

@@ -51,5 +51,11 @@ def getCollection(client, db_name, collection_name):
         print("Error connecting to MongoDB")
         return None
     
+def serialize_document(restaurant):
+    """
+    Converts MongoDB ObjectId and other types to JSON-serializable formats.
+    """
+    restaurant["_id"] = str(restaurant["_id"])
+    return restaurant
     
     
