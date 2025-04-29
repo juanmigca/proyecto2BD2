@@ -69,7 +69,7 @@ def create_user(collection, user=User):
     result = collection.insert_one(user_dict)
     return {"inserted_id": str(result.inserted_id)}
 
-def create_multiple_users(collection, users):
+def create_multiple_users(collection, users=User):
     """
     Creates multiple users in the database.
     """
