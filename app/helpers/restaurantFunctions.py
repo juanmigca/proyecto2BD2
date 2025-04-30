@@ -105,6 +105,7 @@ def createRestaurant(name, longitude, latitude, address, cuisines, platos):
     """
     url  = f'{st.session_state.host}/restaurants'
     data = {
+        
         "name": name,
         "location": {
             "type": "Point",
