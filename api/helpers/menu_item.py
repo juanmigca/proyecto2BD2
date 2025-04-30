@@ -1,4 +1,4 @@
-from models import MenuItem
+from utils.models import MenuItem
 from bson import ObjectId
 
 def serialize_document(menu_item=MenuItem):

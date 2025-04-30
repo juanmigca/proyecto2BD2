@@ -1,5 +1,11 @@
 import streamlit as st
-from helpers.restaurantFunctions import queryRestaurants, queryCuisines, display_restaurant_card, queryPlatos
+from helpers.restaurantFunctions import queryRestaurants, queryCuisines, display_restaurant_card, queryPlatos, createRestaurant
+import sys
+import os
+from datetime import datetime
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+from utils.models import Restaurant
 
 if "restaurants" not in st.session_state:
     st.session_state.restaurants = []
@@ -34,7 +40,8 @@ if choice == "Create Restaurant":
         platos = queryPlatos()
 
         st.subheader("Create Restaurant")
-        resutaurant_id = st.text_input("Restaurant ID")
+        #restaurant id can only be an int
+        resutaurant_id = st.number_input("Restaurant ID", min_value=1, step=1)
         restaurant_name = st.text_input("Restaurant Name")
         restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f")
         restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f")
@@ -49,7 +56,41 @@ if choice == "Create Restaurant":
         if submit_button:
             # Here you would typically call a function to create the restaurant in the database
             platosCreate = [i for i in platos['data'] if i['name'] in create_platos]
-            st.success(f"Restaurant '{restaurant_name}' created successfully!")
+            #remove _id from platosCreate
+            for i in platosCreate:
+                del i['_id']
+                if isinstance(i['addedToMenu'], datetime):
+                    i['addedToMenu'] = i['addedToMenu'].strftime("%Y-%m-%d %H:%M:%S")
+                
+                else:
+                    i['addedToMenu'] = str(i['addedToMenu'])
+              
+            print(platosCreate)
+       
+            url  = f'{st.session_state.host}/restaurants'
+            
+            data = Restaurant(
+                id=int(resutaurant_id),
+                name=restaurant_name,
+                address=restaurant_address,
+                cuisines=create_cuisines,
+                location={
+                    'type': 'Point',
+                    'coordinates': [restaurant_longitude, restaurant_latitude]
+                },
+                menuItems=platosCreate,
+                rating=0,
+                numReviews=0)
+            
+            st.write(data)
+            res = createRestaurant(data)
+            #res = {'status': 200, 'message': 'Restaurant created successfully!'}
+            if res['status'] == 200:
+                st.session_state.restaurants.append(res)
+                st.success(f"Restaurant '{restaurant_name}' created successfully!")
+            else:
+                st.error(f"Error creating restaurant: {res['message']}")
+          
 
 
 elif choice == "Find Restaurants":

@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import json
 
 def urlBuilder(url, params=None):
     """
@@ -99,25 +100,18 @@ def queryPlatos(ids=None):
         return None
     
     
-def createRestaurant(name, longitude, latitude, address, cuisines, platos):
+def createRestaurant(restaurant):
     """
     Creates a new restaurant in the database.
     """
     url  = f'{st.session_state.host}/restaurants'
-    data = {
-        "name": name,
-        "location": {
-            "type": "Point",
-            "coordinates": [longitude, latitude]
-        },
-        "address": address,
-        "cuisines": cuisines,
-        "menuItems": platos
-    }
+    data = restaurant.model_dump()
     
-    response = requests.post(url, body=data)
+
+    response = requests.post(url, json=data)
     if response.status_code == 200:
         return response.json()
     else:
         st.error(f"Error creating restaurant: {response.status_code}")
-        return None
+
+        return response.json()

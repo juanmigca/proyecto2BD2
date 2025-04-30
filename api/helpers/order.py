@@ -1,5 +1,5 @@
 import pymongo
-from models import Order
+from utils.models import Order
 from bson import ObjectId
 
 def serialize_document(order):

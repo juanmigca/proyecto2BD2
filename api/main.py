@@ -2,16 +2,19 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
-from utilsApi import getMongoClient, getCollection
+from utils.utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
-from menuItems import getMenuItems
-from models import Restaurant, User, Review, Order, MenuItem
+from api.helpers.restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
+from api.helpers.menuItems import getMenuItems
+from utils.models import Restaurant, User, Review, Order, MenuItem
 
 
 ### DB 
 
 mongo_client = None
+
+db = 'proyecto2bd'
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -53,7 +56,7 @@ def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Unio
     """
     Returns a list of restaurants.
     """
-    restaurant_collection = getCollection(mongo_client, 'proyecto2bd', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -77,7 +80,7 @@ def update_restaurant(restaurant_id: str, restaurant: Restaurant):
     """
     Updates a restaurant.
     """
-    restaurant_collection = getCollection(mongo_client, 'proyecto2bd', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -97,7 +100,7 @@ def create_restaurant(restaurant: Restaurant):
     Creates a restaurant
     """
 
-    restaurant_collection = getCollection(mongo_client, 'proyecto2db', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -121,7 +124,7 @@ def get_cuisines():
     """
     Returns a list of cuisines.
     """
-    cuisine_collection = getCollection(mongo_client, 'proyecto2bd', 'cuisines')
+    cuisine_collection = getCollection(mongo_client, db, 'cuisines')
     if cuisine_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -140,7 +143,7 @@ def update_multiple_restaurants(ids: Union[list, None], restaurant: Restaurant):
     """
     Updates multiple restaurants.
     """
-    restaurant_collection = getCollection(mongo_client, 'proyecto2bd', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -161,7 +164,7 @@ def get_menuItems(id: Union[str, list, None] = Query(default=None), ingredient: 
     """
     Returns a list of menu items.
     """
-    menuItem_collection = getCollection(mongo_client, 'proyecto2bd', 'menuItems')
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
     if menuItem_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}

@@ -1,4 +1,4 @@
-from models import Cuisines
+from utils.models import Cuisines
 from bson import ObjectId
 
 def serialize_document(cuisine=Cuisines):

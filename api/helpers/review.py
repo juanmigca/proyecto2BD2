@@ -1,5 +1,5 @@
 import pymongo
-from models import Review
+from utils.models import Review
 from bson import ObjectId
 def serialize_document(review=Review):
     """

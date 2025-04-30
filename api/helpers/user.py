@@ -1,4 +1,4 @@
-from models import User
+from utils.models import User
 from bson import ObjectId
 
 def serialize_document(user=User):
