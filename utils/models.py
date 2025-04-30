@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime
 from enum import Enum
 
 class Status(str, Enum):
@@ -19,40 +18,41 @@ class Ingredient(BaseModel):
     unitMeasure: str
 
 class Cuisines(BaseModel):
-    id: str
+    id: int
     name: str
     description: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: Optional[str] = None
     
     
 class MenuItem(BaseModel):
-    id: str
+    id: int
     name: str
     price: float
     ingredients: List[Ingredient] 
-    addedToMenu: datetime = Field(default_factory=datetime.now)
+    addedToMenu: Optional[str] = None
     
 class Restaurant(BaseModel):
-    id: str
+    id: int
     name: str
     address: Optional[str] = None
     cuisines: Optional[List[str]] = None
     location: Optional[Location] = None
-    menuItems: Optional[MenuItem] = None
-    rating: Optional[float] = None
+    menuItems: Optional[List[MenuItem]] = None
+    rating: Optional[float] = 0
+    numReviews: Optional[int] = 0
 
 class User(BaseModel): 
-    id: str
+    id: int
     username: str
     numOrders: int = 0
     numReviews: int = 0
     visitedRestaurants: Optional[List[str]] = None
 
 class Order(BaseModel):
-    id: str
+    id: int
     userId: str
-    orderedAt: datetime
-    arrivedAt: datetime
+    orderedAt: str
+    arrivedAt: str
     status: Status 
     restaurantId: str
     items: List[MenuItem]
@@ -62,14 +62,20 @@ class Order(BaseModel):
     total: float
     
 class Review(BaseModel):
-    id: str
+    id: int
     userId: str
     restaurantId: Optional[str] = None
     orderId: Optional[str] = None
     stars: int = Field(..., ge=1, le=10)
     comment: str
-    timestamp: datetime
+    timestamp: str
     
+def encoder(obj):
+    if isinstance(obj, str):
+        return obj.isoformat()
+    elif isinstance(obj, Enum):
+        return obj.value
+    raise TypeError(f"Type {type(obj)} not serializable")
 
     
     

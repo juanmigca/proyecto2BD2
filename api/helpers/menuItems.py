@@ -1,5 +1,5 @@
-from models import MenuItem
-from utilsApi import serialize_document
+from utils.models import MenuItem
+from utils.utilsApi import serialize_document
 
 def queryBuilder(ids = None, ingredients = None, restaurants = None):
     args = {}

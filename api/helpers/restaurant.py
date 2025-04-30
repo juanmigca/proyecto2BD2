@@ -1,7 +1,7 @@
 import pymongo
-from models import Restaurant
+from utils.models import Restaurant
 from bson import ObjectId
-from utilsApi import serialize_document
+from utils.utilsApi import serialize_document
 
 
     
