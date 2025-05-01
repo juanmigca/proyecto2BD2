@@ -29,3 +29,17 @@ def query_builder(id=None,name=None):
             args['name'] = name
     return args
 
+def get_cuisine(collection, id=None, name=None, limit=10):
+    """
+    Returns a list of cuisines based on the provided parameters.
+    """
+    if collection is None:
+        raise ValueError('Collection is None')
+    args = query_builder(id, name)
+    cursor = collection.find(args).limit(limit)
+    cuisines = []
+    for cuisine in cursor:
+        cuisines.append(serialize_document(cuisine))
+    return list(cuisines)
+
+#def create_cuisine(collection, cuisine=Cuisines):
