@@ -75,7 +75,7 @@ def create_multiple_menu_item(collection,menu_items=MenuItem):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    menu_items_dict = [menu_item.model_dump() for menu_item in menu_items]
+    menu_items_dict = menu_items.model_dump()
     result = collection.insert_many(menu_items_dict)
     return {"inserted_ids": [int(id) for id in result.inserted_ids]}
 
