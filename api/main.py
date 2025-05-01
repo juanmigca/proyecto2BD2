@@ -2,15 +2,19 @@ from typing import Union
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
-from utilsApi import getMongoClient, getCollection
+from utils.utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
-from models import Restaurant, User, Review, Order, MenuItem
+from api.helpers.restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
+from api.helpers.menuItems import getMenuItems
+from utils.models import Restaurant, User, Review, Order, MenuItem
 
 
 ### DB 
 
 mongo_client = None
+
+db = 'proyecto2bd'
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,11 +52,11 @@ def read_root():
 ### Restaurants
 
 @app.get("/restaurants")
-def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), cuisine: Union[str, list, None] = Query(default=None), limit: int = Query(default=10)):
+def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), cuisine: Union[str, list, None] = Query(default=None), limit: int = Query(default=10), sort: str = Query(default="rating")):
     """
     Returns a list of restaurants.
     """
-    restaurant_collection = getCollection(mongo_client, 'proyecto2bd', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -71,10 +75,12 @@ def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Unio
 
 @app.patch("/restaurants/{restaurant_id}")
 def update_restaurant(restaurant_id: str, restaurant: Restaurant):
+    
+    
     """
     Updates a restaurant.
     """
-    restaurant_collection = getCollection(mongo_client, 'proyecto2bd', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -94,7 +100,7 @@ def create_restaurant(restaurant: Restaurant):
     Creates a restaurant
     """
 
-    restaurant_collection = getCollection(mongo_client, 'proyecto2db', 'restaurants')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
     if restaurant_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -118,7 +124,7 @@ def get_cuisines():
     """
     Returns a list of cuisines.
     """
-    cuisine_collection = getCollection(mongo_client, 'proyecto2bd', 'cuisines')
+    cuisine_collection = getCollection(mongo_client, db, 'cuisines')
     if cuisine_collection is None:
         return {'status': 502,
                 'message': 'Error connecting to collection'}
@@ -132,5 +138,41 @@ def get_cuisines():
             'data': cuisines}
 
 
+@app.patch("/batch/restaurants")
+def update_multiple_restaurants(ids: Union[list, None], restaurant: Restaurant):
+    """
+    Updates multiple restaurants.
+    """
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+    if restaurant_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        updateRestaurant(restaurant_collection, ids, restaurant)
+    except:
+        return {'status': 500,
+                'message': 'Error updating restaurant'}
+    return {'status': 200, 
+            'message': f'Restaurants with ids {ids} updated'}
+    
 
+### Menu Items
 
+@app.get("/menuItems")
+def get_menuItems(id: Union[str, list, None] = Query(default=None), ingredient: Union[str, list, None] = Query(default=None), restaurant: Union[str, list, None] = Query(default=None), limit: int = Query(default=None)):
+    """
+    Returns a list of menu items.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        menuItems = getMenuItems(menuItem_collection, id, ingredient, restaurant, limit)
+    except:
+        return {'status': 500,
+                'message': 'Query execution error'}
+    return {'status': 200, 
+            'data': menuItems}

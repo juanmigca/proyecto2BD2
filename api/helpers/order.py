@@ -1,12 +1,14 @@
 import pymongo
-from models import Order
+from utils.models import Order
 from bson import ObjectId
-def serialize_document(order=Order):
+
+def serialize_document(order):
     """
     Converts MongoDB ObjectId and other types to JSON-serializable formats.
     """
     order["_id"] = str(order["_id"])
     return order
+
 
 def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
     args = {}
@@ -40,6 +42,7 @@ def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
             args['status'] = status
     return args
 
+
 def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None, limit=10):
     """
     Returns a list of orders.
@@ -53,7 +56,8 @@ def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None
         orders.append(serialize_document(order))
     return list(orders)
 
-def createOrder(collection, order=Order):
+
+def createOrder(collection, order: Order):
     """
     Creates a new order in the database.
     """

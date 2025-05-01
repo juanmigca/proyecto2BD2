@@ -1,13 +1,8 @@
 import pymongo
-from models import Restaurant
+from utils.models import Restaurant
 from bson import ObjectId
+from utils.utilsApi import serialize_document
 
-def serialize_document(restaurant):
-    """
-    Converts MongoDB ObjectId and other types to JSON-serializable formats.
-    """
-    restaurant["_id"] = str(restaurant["_id"])
-    return restaurant
 
     
 def queryBuilder(id = None, name = None, cuisine = None):
@@ -38,16 +33,17 @@ def queryBuilder(id = None, name = None, cuisine = None):
     return args
 
 
-def getRestaurants(collection, id = None, name = None, cuisine = None, limit = 10):
+def getRestaurants(collection, id = None, name = None, cuisine = None, limit = 10, sort = "rating"):
     """
     Returns a list of restaurants.
     """
-
+    
     if collection is None:
         raise ValueError('Collection is None')
     args = queryBuilder(id, name, cuisine)
     print(args)
-    cursor = collection.find(args).limit(limit)
+    
+    cursor = collection.find(args).sort(sort).limit(limit)
     restaurants = []
     for restaurant in cursor:
         restaurants.append(serialize_document(restaurant))
@@ -136,6 +132,8 @@ def deleteRestaurant(collection, id):
     result = collection.delete_one({"id": id})
     
     return result.deleted_count
+
+
 def deletemultipleRestaurants(collection, ids):
     if collection is None:
         raise ValueError('Collection is None')
