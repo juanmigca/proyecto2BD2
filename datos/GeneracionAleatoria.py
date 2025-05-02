@@ -72,7 +72,7 @@ def generate_restaurants(num_restaurants, menuItems):
             'address': 'Calle ' + str(random.randint(1, 100)) + ', Avenida '+str(random.randint(1, 100))+', Ciudad ' + str(random.randint(1, 10)),
             'location':{
                 'type': 'Point',
-                'coordinates': [round(random.uniform(-90.0, 90.0), 6), round(random.uniform(-180.0, 180.0), 6)]
+                'coordinates': [round(random.uniform(-180.0, 180.0), 6), round(random.uniform(-90.0, 90.0), 6)]
             },
             'menuItems': random.sample(menuItems, 40)
         }
