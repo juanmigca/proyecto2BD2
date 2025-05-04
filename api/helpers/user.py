@@ -1,25 +1,20 @@
 from utils.models import User
 from bson import ObjectId
 
-def serialize_document(user=User):
-    """
-    Converts MongoDB ObjectId and other types to JSON-serializable formats.
-    """
-    user["_id"] = str(user["_id"])
-    return user
+from utils.utilsApi import serialize_document
 
-def queryBuilder(id=None, username=None, numReviews=None, visitedRestaurants=None):
+def queryBuilder(id=None, username=None, order_mode="equals", numOrders=None, review_mode="equals", numReviews=None, visitedRestaurants=None):
     """
     Builds a query for MongoDB based on the provided parameters.
     """
     args = {}
     if id is not None:
         if isinstance(id, list) and len(id) > 1:
-            args['_id'] = {"$in": [int(i) for i in id]}
+            args['id'] = {"$in": [int(i) for i in id]}
         elif isinstance(id, list) and len(id) == 1:
-            args['_id'] = int(id[0])
+            args['id'] = int(id[0])
         else:
-            args['_id'] = int(id)
+            args['id'] = int(id)
     if username is not None:
         if isinstance(username, list) and len(username) > 1:
             args['username'] = {"$in": [username for username in username]}
@@ -27,13 +22,31 @@ def queryBuilder(id=None, username=None, numReviews=None, visitedRestaurants=Non
             args['username'] = username[0]
         else:
             args['username'] = username
+    if numOrders is not None:
+        
+        if order_mode == "greater":
+            args['numOrders'] = {"$gt": int(numOrders[0])}
+        elif order_mode == "lesser":
+            args['numOrders'] = {"$lt": int(numOrders[0])}
+        elif order_mode == "equals":
+            if isinstance(numOrders, list) and len(numOrders) > 1:
+                args['numOrders'] = {"$in": [int(numOrders) for numOrders in numOrders]}
+            elif isinstance(numOrders, list) and len(numOrders) == 1:
+                args['numOrders'] = int(numOrders[0])
+            else:
+                args['numOrders'] = int(numOrders)
     if numReviews is not None:
-        if isinstance(numReviews, list) and len(numReviews) > 1:
-            args['numReviews'] = {"$in": [numReviews for numReviews in numReviews]}
-        elif isinstance(numReviews, list) and len(numReviews) == 1:
-            args['numReviews'] = numReviews[0]
-        else:
-            args['numReviews'] = numReviews
+        if review_mode == "greater":
+            args['numReviews'] = {"$gt": int(numReviews[0])}
+        elif review_mode == "lesser":
+            args['numReviews'] = {"$lt": int(numReviews[0])}
+        elif review_mode == "equals":
+            if isinstance(numReviews, list) and len(numReviews) > 1:
+                args['numReviews'] = {"$in": [int(numReviews) for numReviews in numReviews]}
+            elif isinstance(numReviews, list) and len(numReviews) == 1:
+                args['numReviews'] = int(numReviews[0])
+            else:
+                args['numReviews'] = int(numReviews)
     if visitedRestaurants is not None:
         if isinstance(visitedRestaurants, list) and len(visitedRestaurants) > 1:
             args['visitedRestaurants'] = {"$in": [visitedRestaurants for visitedRestaurants in visitedRestaurants]}
@@ -43,20 +56,25 @@ def queryBuilder(id=None, username=None, numReviews=None, visitedRestaurants=Non
             args['visitedRestaurants'] = visitedRestaurants
     return args
 
-def get_user(collection, id=None, username=None, numReviews=None, visitedRestaurants=None, limit=10):
+def getUser(collection, id=None, username=None, orders_search_mode="equals", numOrders=None, reviews_search_mode = "equals", numReviews=None, visitedRestaurants=None, limit=10, sort="username"):
     """
     Returns a list of users based on the provided parameters.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    args = queryBuilder(id, username, numReviews, visitedRestaurants)
-    cursor = collection.find(args).limit(limit)
+    
+    args = queryBuilder(id, username,orders_search_mode, numOrders, reviews_search_mode, numReviews, visitedRestaurants)
+  
+
+    cursor = collection.find(args).sort(sort).limit(limit)
+
+    #print(args)
     users = []
     for user in cursor:
         users.append(serialize_document(user))
     return list(users)
 
-def create_user(collection, user=User):
+def createUser(collection, user):
     """
     Creates a new user in the database.
     """
@@ -69,7 +87,7 @@ def create_user(collection, user=User):
     result = collection.insert_one(user_dict)
     return {"inserted_id": str(result.inserted_id)}
 
-def create_multiple_users(collection, users=User):
+def createMultiplUsers(collection, users):
     """
     Creates multiple users in the database.
     """
@@ -82,44 +100,46 @@ def create_multiple_users(collection, users=User):
     result = collection.insert_many(user_dicts)
     return {"inserted_ids": [str(id) for id in result.inserted_ids]}
 
-def update_user(collection, id, user=User):
+def updateUser(collection, id, user):
     """
     Updates an existing user in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
     user_dict = user.model_dump()
-    result = collection.update_one({"_id": int(id)}, {"$set": user_dict})
+    user_dict = {k: v for k, v in user_dict.items() if v is not None}
+    result = collection.update_one({"id": int(id)}, {"$set": user_dict})
     if result.matched_count == 0:
         raise ValueError('User not found')
     return {"modified_count": result.modified_count}
 
-def update_multiple_users(collection, ids, user=User):
+def updateMultipleUsers(collection, ids, user):
     """
     Updates multiple users in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
     user_dict = user.model_dump()
-    result = collection.update_many({"_id": {"$in": [int(i) for i in ids]}}, {"$set": user_dict})
+    user_dict = {k: v for k, v in user_dict.items() if v is not None}
+    result = collection.update_many({"id": {"$in": [int(i) for i in ids]}}, {"$set": user_dict})
     return {"modified_count": result.modified_count}
 
-def delete_user(collection, id):
+def deleteUser(collection, id):
     """
     Deletes a user from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_one({"_id": int(id)})
+    result = collection.delete_one({"id": int(id)})
     return {"deleted_count": result.deleted_count}
 
-def delete_multiple_users(collection, ids):
+def deleteMultipleUsers(collection, ids):
     """
     Deletes multiple users from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_many({"_id": {"$in": [int(i) for i in ids]}})
+    result = collection.delete_many({"id": {"$in": [int(i) for i in ids]}})
     return {"deleted_count": result.deleted_count}
     
     

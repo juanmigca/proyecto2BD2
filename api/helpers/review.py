@@ -1,21 +1,17 @@
 import pymongo
 from utils.models import Review
 from bson import ObjectId
-def serialize_document(review=Review):
-    """
-    Converts MongoDB ObjectId and other types to JSON-serializable formats.
-    """
-    review["_id"] = str(review["_id"])
-    return review
+from utils.utilsApi import serialize_document
+
 def queryBuilder(id=None, user_id=None, restaurant_id=None, rating=None):
     args = {}
     if id is not None:
         if isinstance(id, list) and len(id) > 1:
-            args['_id'] = {"$in": [int(i) for i in id]}
+            args['id'] = {"$in": [int(i) for i in id]}
         elif isinstance(id, list) and len(id) == 1:
-            args['_id'] = int(id[0])
+            args['id'] = int(id[0])
         else:
-            args['_id'] = int(id)
+            args['id'] = int(id)
     if user_id is not None:
         if isinstance(user_id, list) and len(user_id) > 1:
             args['userId'] = {"$in": [int(user_id) for user_id in user_id]}
@@ -52,48 +48,51 @@ def get_review(collection, id=None, user_id=None, restaurant_id=None, rating=Non
         reviews.append(serialize_document(review))
     return list(reviews)
 
-def create_review(collection, review=Review):
+def createReview(collection, review=Review):
     """
     Creates a new review in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
     review_dict=review.model_dump()
+    
     existing = collection.find_one({"id": review_dict["id"]})
     if existing:
         raise ValueError('Restaurant with that id already exists')
     result = collection.insert_one(review_dict)
     return {"inserted_id": str(result.inserted_id)}
 
-def update_review(collection, id, review=Review):
+def updateReview(collection, id, review):
     """
     Updates an existing review in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
     review_dict = review.model_dump()
-    result = collection.update_one({"_id": int(id)}, {"$set": review_dict})
+    review_dict = {k: v for k, v in review_dict.items() if v is not None}
+    result = collection.update_one({"id": int(id)}, {"$set": review_dict})
     if result.matched_count == 0:
         raise ValueError(f"No review found with id {id}")
     return {"modified_count": result.modified_count}
 
-def update_multiple_reviews(collection, ids, review=Review):
+def updateMultipleReviews(collection, ids, review):
     """
     Updates multiple reviews in the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
     review_dict = review.model_dump()
-    result = collection.update_many({"_id": {"$in": [int(i) for i in ids]}}, {"$set": review_dict})
+    review_dict = {k: v for k, v in review_dict.items() if v is not None}
+    result = collection.update_many({"id": {"$in": [int(i) for i in ids]}}, {"$set": review_dict})
     return {"modified_count": result.modified_count}
 
-def delete_review(collection,id):
+def deleteReview(collection,id):
     """
     Deletes a review from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_one({"_id": int(id)})
+    result = collection.delete_one({"id": int(id)})
     return {"deleted_count": result.deleted_count}
 
 def delete_multiple_reviews(collection, ids):
@@ -102,7 +101,7 @@ def delete_multiple_reviews(collection, ids):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_many({"_id": {"$in": [int(i) for i in ids]}})
+    result = collection.delete_many({"id": {"$in": [int(i) for i in ids]}})
     return {"deleted_count": result.deleted_count}
 
 

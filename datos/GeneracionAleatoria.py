@@ -45,9 +45,9 @@ def generate_ingredients(num_ingredients):
         ingredients.append(ingredient)
     return ingredients
 
-def generate_menu_items(num_items):
+def generate_menu_items(num_items, ingredients):
     menu_items = []
-    ingredientes = generate_ingredients(30)
+    ingredientes = ingredients
 
     for i in range(num_items):
         item = {
@@ -188,7 +188,11 @@ def addRestaurantRatings(restaurants, reviews):
 
 """main"""
 
-menu_items = generate_menu_items(300)
+ingredients = generate_ingredients(100)
+with open('ingredients.json', 'w') as f:
+    json.dump(ingredients, f)
+
+menu_items = generate_menu_items(300, ingredients)
 
 with open('menu_items.json', 'w') as f:
     json.dump(menu_items, f)

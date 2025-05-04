@@ -4,9 +4,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
 from utils.utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from api.helpers.restaurant import getRestaurants, updateRestaurant, createRestaurant, getCuisines
-from api.helpers.menuItems import getMenuItems
-from utils.models import Restaurant, User, Review, Order, MenuItem
+from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, createRestaurant,  deleteRestaurantsWrapper
+from api.helpers.menuItems import getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, deleteMultipleMenuItems, updateMultipleMenuItem
+from api.helpers.ingredients import getIngredients, createIngredient, updateIngredient, deleteIngredient, deleteMultipleIngredient, multipleUpdateIngredient
+from api.helpers.cuisines import getCuisine, createCuisine, updateCuisine, updateMultipleCuisine, deleteCuisine, deleteMultipleCuisine
+from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers
+from api.helpers.review import get_review, createReview, updateReview, updateMultipleReviews, deleteReview, delete_multiple_reviews
+from api.helpers.order import getOrders, createOrder, updateOrder, updateMultipleOrders, deleteOrder, deleteMultipleOrders
+from utils.models import Restaurant, User, Review, Order, MenuItem, Ingredient, Cuisines
+
+
+### Defaults
+default_restaurant = Restaurant(
+    id =None,
+    name=None,
+    address=None,
+    cuisines = None,
+    location = None,
+    menuItems = None,
+    rating = None,
+    numReviews = None)
 
 
 ### DB 
@@ -63,7 +80,7 @@ def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Unio
     
     
     try:
-        print(id, name, cuisine)
+        #print(id, name, cuisine)
         restaurants = getRestaurants(restaurant_collection, id, name, cuisine, limit)
     except:
         return {'status': 500,
@@ -73,8 +90,8 @@ def get_restaurants(id: Union[str, list, None] = Query(default=None), name: Unio
 
 
 
-@app.patch("/restaurants/{restaurant_id}")
-def update_restaurant(restaurant_id: str, restaurant: Restaurant):
+@app.patch("/restaurants")
+def update_restaurant(find_id: Union[str, None] = Query(default=None), find_name: Union[str,None] = Query(default=None), find_cuisine: Union[str, list, None]= Query(default=None), restaurant: Restaurant = default_restaurant):
     
     
     """
@@ -85,15 +102,43 @@ def update_restaurant(restaurant_id: str, restaurant: Restaurant):
         return {'status': 502,
                 'message': 'Error connecting to collection'}
     try:
-        updateRestaurant(restaurant_collection, {restaurant_id}, restaurant)
+        res = updateRestaurantWrapper(restaurant_collection, find_id, find_name, find_cuisine, restaurant, "single")
+    except ValueError as e:
+        return {'status': 500,
+                'message': e}
     except:
         return {'status': 500,
                 'message': 'Error updating restaurant'}
-    return {'status': 200, 
-            'message': f'Restaurant with id {restaurant_id} updated'}
-
-
     
+    return {'status': 200, 
+            'message': f'Restaurant updated'}
+
+
+
+
+@app.patch("/batch/restaurants")
+def update_multiple_restaurants(find_id: Union[list, str, None] = Query(default=None), find_name: Union[list, str, None] = Query(default=None), find_cuisine: Union[list, str, None] = Query(default=None), restaurant: Restaurant = default_restaurant):
+    """
+    Updates multiple restaurants.
+    """
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+    if restaurant_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        res = updateRestaurantWrapper(restaurant_collection, find_id, find_name, find_cuisine, restaurant, "multiple")
+    except ValueError as e:
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error updating restaurant'}
+    
+    return {'status': 200, 
+            'message': f'{res} restaurants updated'}
+    
+
 @app.post("/restaurants")
 def create_restaurant(restaurant: Restaurant):
     """
@@ -116,11 +161,49 @@ def create_restaurant(restaurant: Restaurant):
         
     return {'status': 200, 
             'message': f'Restaurant created'}
-    
+
+@app.delete("/restaurants")
+def delete_restaurant(find_id: Union[str, None] = Query(default=None), find_name: Union[str, None] = Query(default=None), find_cuisine: Union[list, str, None] = Query(default=None)):
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+    if restaurant_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    try:
+        deleteRestaurantsWrapper(restaurant_collection, find_id, find_name, find_cuisine, "single")
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error deleting restaurant'}
+        
+    return {'status': 200, 
+            'message': f'Restaurant deleted'}
+
+@app.delete("/batch/restaurants")
+def delete_multiple_restaurants(find_id: Union[list, str, None] = Query(default=None), find_name: Union[list, str, None] = Query(default=None), find_cuisine: Union[list, str, None] = Query(default=None)):
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+    if restaurant_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    try:
+        deleteRestaurantsWrapper(restaurant_collection, find_id, find_name, find_cuisine, "multiple")
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error deleting restaurants'}
+        
+    return {'status': 200, 
+            'message': f'Restaurans deleted'}
+
 ### Cuisines
 
 @app.get("/cuisines")
-def get_cuisines():
+def get_cuisines(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), limit: Union[int, None] = Query(default=None), sort: str = Query(default="name")):
     """
     Returns a list of cuisines.
     """
@@ -130,37 +213,52 @@ def get_cuisines():
                 'message': 'Error connecting to collection'}
     
     try:
-        cuisines = getCuisines(cuisine_collection)
+        cuisines = getCuisine(cuisine_collection, id, name, limit, sort)
     except:
         return {'status': 500,
                 'message': 'Query execution error'}
     return {'status': 200, 
             'data': cuisines}
 
+@app.post("/cuisines")
+def create_cuisine(cuisine: Cuisines):
+    """
+    Creates a cuisine.
+    """
+    collection = getCollection(mongo_client, db, 'cuisines')
+    return {'status': 200, 'data': createCuisine(collection, cuisine)}
 
-@app.patch("/batch/restaurants")
-def update_multiple_restaurants(ids: Union[list, None], restaurant: Restaurant):
+@app.patch("/cuisines")
+def update_cuisine(id: str, cuisine: Cuisines):
     """
-    Updates multiple restaurants.
+    Updates a cuisine.
     """
-    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
-    if restaurant_collection is None:
-        return {'status': 502,
-                'message': 'Error connecting to collection'}
-    
-    try:
-        updateRestaurant(restaurant_collection, ids, restaurant)
-    except:
-        return {'status': 500,
-                'message': 'Error updating restaurant'}
-    return {'status': 200, 
-            'message': f'Restaurants with ids {ids} updated'}
-    
+    collection = getCollection(mongo_client, db, 'cuisines')
+    return {'status': 200, 'data': updateCuisine(collection, id, cuisine)}
+
+@app.delete("/cuisines")
+def delete_cuisine(id: str):
+    """
+    Deletes a cuisine.
+    """
+    collection = getCollection(mongo_client, db, 'cuisines')
+    return {'status': 200, 'data': deleteCuisine(collection, id)}
+
+@app.patch("/batch/cuisines")
+def update_multiple_cuisines(ids: list[str], cuisine: Cuisines):
+    collection = getCollection(mongo_client, db, 'cuisines')
+    return {'status': 200, 'data': updateMultipleCuisine(collection, ids, cuisine)}
+
+@app.delete("/batch/cuisines")
+def delete_multiple_cuisines(ids: list[str]):
+    collection = getCollection(mongo_client, db, 'cuisines')
+    return {'status': 200, 'data': deleteMultipleCuisine(collection, ids)}
+
 
 ### Menu Items
 
 @app.get("/menuItems")
-def get_menuItems(id: Union[str, list, None] = Query(default=None), ingredient: Union[str, list, None] = Query(default=None), restaurant: Union[str, list, None] = Query(default=None), limit: int = Query(default=None)):
+def get_menuItems(id: Union[str, list, None] = Query(default=None), name: Union[str, list, None] = Query(default=None), limit: Union[int, None] = Query(default=None), sort: str = Query(default="addedToMenu")):
     """
     Returns a list of menu items.
     """
@@ -170,9 +268,268 @@ def get_menuItems(id: Union[str, list, None] = Query(default=None), ingredient: 
                 'message': 'Error connecting to collection'}
     
     try:
-        menuItems = getMenuItems(menuItem_collection, id, ingredient, restaurant, limit)
+        menuItems = getMenuItems(menuItem_collection, id, name, limit, sort)
     except:
         return {'status': 500,
                 'message': 'Query execution error'}
     return {'status': 200, 
             'data': menuItems}
+
+
+
+@app.post("/menuItems")
+def create_menu_item(menu_item: MenuItem):
+    """
+    Creates a menu item.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        createMenuItem(menuItem_collection, menu_item)
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error creating menu item'}
+        
+    return {'status': 200, 
+            'message': f'Menu item created'}
+
+@app.patch("/menuItems")
+def update_menu_item(find_id: Union[str, None] = Query(default=None), menu_item: MenuItem = MenuItem):
+    """
+    Updates a menu item.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        updateMenuItem(menuItem_collection, find_id, menu_item)
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error updating menu item'}
+        
+    return {'status': 200, 
+            'message': f'Menu item updated'}
+
+@app.patch("/batch/menuItems")
+def update_multiple_menu_items(find_id: Union[list, str, None] = Query(default=None), menu_item: MenuItem = MenuItem):
+    """
+    Updates multiple menu items.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        updateMultipleMenuItem(menuItem_collection, find_id, menu_item)
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error updating menu items'}
+        
+    return {'status': 200, 
+            'message': f'Menu items updated'}
+
+@app.delete("/menuItems")
+def delete_menu_item(find_id: Union[str, None] = Query(default=None)):
+    """
+    Deletes a menu item.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        deleteMenuItem(menuItem_collection, find_id)
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error deleting menu item'}
+        
+    return {'status': 200, 
+            'message': f'Menu item deleted'}
+
+@app.delete("/batch/menuItems")
+def delete_multiple_menu_items(find_id: Union[list, str, None] = Query(default=None)):
+    """
+    Deletes multiple menu items.
+    """
+    menuItem_collection = getCollection(mongo_client, db, 'menuItems')
+    if menuItem_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        deleteMultipleMenuItems(menuItem_collection, find_id)
+    except ValueError as e:
+        
+        return {'status': 500, 
+                'message': e}
+    except:
+        return {'status': 500,
+                'message': 'Error deleting menu items'}
+        
+    return {'status': 200, 
+            'message': f'Menu items deleted'}
+
+
+### Ingredients
+
+@app.get("/ingredients")
+def get_ingredients(name: Union[str, list, None] = Query(default=None), amount: Union[str, list, None] = Query(default=None), unitMeasure: Union[str, list, None] = Query(default=None), limit: Union[int, None] = Query(default=None), sort: str = Query(default="name")):
+    """
+    Returns a list of ingredients.
+    """
+    ingredient_collection = getCollection(mongo_client, db, 'ingredients')
+    if ingredient_collection is None:
+        return {'status': 502,
+                'message': 'Error connecting to collection'}
+    
+    try:
+        print(name, amount, unitMeasure, limit, sort)
+        ingredients = getIngredients(ingredient_collection, name, amount, unitMeasure, limit, sort)
+    except:
+        return {'status': 500,
+                'message': 'Query execution error'}
+    return {'status': 200, 
+            'data': ingredients}
+
+
+
+
+### Users
+
+
+@app.get("/users")
+def get_users(id: Union[str, list, None] = Query(default=None), 
+              username: Union[str, list, None] = Query(default=None), 
+              orderMode: Union[str, None] = Query(default="equals"),
+              numOrders: Union[int, list, None] = Query(default=None),
+              reviewsMode: Union[str,None] = Query(default="equals"),
+              numReviews: Union[int, list, None] = Query(default=None), 
+              visitedRestaurants: Union[str, list, None] = Query(default=None), 
+              limit: Union[int, None] = Query(default=10),
+              sort: str = Query(default="username")):
+    """
+    Returns a list of users.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        users = getUser(user_collection, id, username, orderMode, numOrders, reviewsMode, numReviews, visitedRestaurants, limit, sort)
+    except:
+        return {'status': 500, 'message': 'Query execution error'}
+    return {'status': 200, 'data': users}
+
+@app.post("/users")
+def create_user(user: User):
+    """
+    Creates a user.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        createUser(user_collection, user)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error creating user'}
+
+    return {'status': 200, 'message': 'User created'}
+
+@app.patch("/users")
+def update_user(find_id: Union[str, None] = Query(default=None), user: User = User):
+    """
+    Updates a user.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        updateUser(user_collection, find_id, user)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating user'}
+
+    return {'status': 200, 'message': 'User updated'}
+
+@app.patch("/batch/users")
+def update_multiple_users(find_id: Union[list, str, None] = Query(default=None), user: User = User):
+    """
+    Updates multiple users.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        ids = find_id if isinstance(find_id, list) else [find_id]
+        updateMultipleUsers(user_collection, ids, user)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating users'}
+
+    return {'status': 200, 'message': 'Users updated'}
+
+@app.delete("/users")
+def delete_user(find_id: Union[str, None] = Query(default=None)):
+    """
+    Deletes a user.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        deleteUser(user_collection, find_id)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error deleting user'}
+
+    return {'status': 200, 'message': 'User deleted'}
+
+@app.delete("/batch/users")
+def delete_multiple_users(find_id: Union[list, str, None] = Query(default=None)):
+    """
+    Deletes multiple users.
+    """
+    user_collection = getCollection(mongo_client, db, 'users')
+    if user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        ids = find_id if isinstance(find_id, list) else [find_id]
+        deleteMultipleUsers(user_collection, ids)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error deleting users'}
+
+    return {'status': 200, 'message': 'Users deleted'}

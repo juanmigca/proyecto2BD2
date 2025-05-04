@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
+from datetime import datetime
+
+def default_datetime():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 class Status(str, Enum):
     COMPLETED = "Entregado"
@@ -8,74 +12,70 @@ class Status(str, Enum):
     CANCELED = "Cancelado"
 
 class Location(BaseModel):
-    type: str 
-    coordinates: List[float] 
+    type: Optional[str] = None
+    coordinates: Optional[List[float]] = None
     
     
 class Ingredient(BaseModel):
-    name: str
-    amount: float
-    unitMeasure: str
+    id: Optional[int] = None
+    name: Optional[str] = None
+    amount: Optional[float] = 0.0
+    unitMeasure: Optional[str] = None
 
 class Cuisines(BaseModel):
-    id: int
-    name: str
+    id: Optional[int] = None
+    name: Optional[str] = None
     description: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[str] = Field(default_factory=default_datetime)
     
     
 class MenuItem(BaseModel):
-    id: int
-    name: str
-    price: float
-    ingredients: List[Ingredient] 
-    addedToMenu: Optional[str] = None
+    id: Optional[int] = None
+    name: Optional[str] = None
+    price: Optional[float] = None
+    ingredients: Optional[List[Ingredient]] = None
+    addedToMenu: Optional[str] = Field(default_factory=default_datetime)
     
 class Restaurant(BaseModel):
-    id: int
-    name: str
+    id: Optional[int] = None
+    name: Optional[str] = None
     address: Optional[str] = None
     cuisines: Optional[List[str]] = None
     location: Optional[Location] = None
     menuItems: Optional[List[MenuItem]] = None
-    rating: Optional[float] = 0
+    rating: Optional[float] = 0.0
     numReviews: Optional[int] = 0
 
 class User(BaseModel): 
-    id: int
-    username: str
-    numOrders: int = 0
-    numReviews: int = 0
-    visitedRestaurants: Optional[List[str]] = None
+    id: Optional[int] = None
+    username: Optional[str] = None
+    numOrders: Optional[int] = 0
+    numReviews: Optional[int] = 0
+    visitedRestaurants: Optional[List[int]] = []
 
 class Order(BaseModel):
-    id: int
-    userId: str
-    orderedAt: str
-    arrivedAt: str
-    status: Status 
-    restaurantId: str
-    items: List[MenuItem]
-    subtotal: float
-    tax: float
-    tip: float
-    total: float
+    id: Optional[int] = None
+    userId: Optional[str] = None
+    orderedAt: Optional[str] = Field(default_factory=default_datetime)
+    arrivedAt: Optional[str] = None
+    status: Optional[Status] = Status.PENDING
+    restaurantId: Optional[str] = None
+    items: Optional[List[MenuItem]] = []
+    subtotal: Optional[float] = 0.0
+    tax: Optional[float] = 0.0
+    tip: Optional[float] = 0.0
+    total: Optional[float] = 0.0
     
 class Review(BaseModel):
-    id: int
-    userId: str
-    restaurantId: Optional[str] = None
-    orderId: Optional[str] = None
-    stars: int = Field(..., ge=1, le=10)
-    comment: str
-    timestamp: str
+    id: Optional[int] = None
+    userId: Optional[int] = None
+    restaurantId: Optional[int] = None
+    orderId: Optional[int] = None
+    stars: Optional[int] = Field(default=None, ge=1, le=10)
+    comment: Optional[str]
+    timestamp: Optional[str] = Field(default_factory=default_datetime)
     
-def encoder(obj):
-    if isinstance(obj, str):
-        return obj.isoformat()
-    elif isinstance(obj, Enum):
-        return obj.value
-    raise TypeError(f"Type {type(obj)} not serializable")
+
 
     
     
