@@ -8,8 +8,8 @@ from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, crea
 from api.helpers.menuItems import getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, deleteMultipleMenuItems, updateMultipleMenuItem
 from api.helpers.ingredients import getIngredients, createIngredient, updateIngredient, deleteIngredient, deleteMultipleIngredient, multipleUpdateIngredient
 from api.helpers.cuisines import getCuisine, createCuisine, updateCuisine, updateMultipleCuisine, deleteCuisine, deleteMultipleCuisine
-from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers
-from api.helpers.review import get_review, createReview, updateReview, updateMultipleReviews, deleteReview, delete_multiple_reviews
+from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers, updateUserOrderCount, updateUserReviewCount
+from api.helpers.review import get_review, createReview, updateReview, updateMultipleReviews, deleteReview, deleteMultipleReviews
 from api.helpers.order import getOrders, createOrder, updateOrder, updateMultipleOrders, deleteOrder, deleteMultipleOrders
 from utils.models import Restaurant, User, Review, Order, MenuItem, Ingredient, Cuisines
 
@@ -533,3 +533,135 @@ def delete_multiple_users(find_id: Union[list, str, None] = Query(default=None))
         return {'status': 500, 'message': 'Error deleting users'}
 
     return {'status': 200, 'message': 'Users deleted'}
+
+### Orders
+
+@app.post("/orders")
+def create_order(order: Order):
+    """
+    Creates a new order and updates the user's order count.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    user_collection = getCollection(mongo_client, db, 'users')
+
+    if order_collection is None or user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        createOrder(order_collection, order)
+        updateUserOrderCount(user_collection, order_collection, user_id=order.userId)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error creating order: {e}'}
+
+    return {'status': 200, 'message': 'Order created and user order count updated'}
+
+
+@app.delete("/orders")
+def delete_order(find_id: Union[str, None] = Query(default=None)):
+    """
+    Deletes a single order and updates the user's order count.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    user_collection = getCollection(mongo_client, db, 'users')
+    review_collection = getCollection(mongo_client, db, 'reviews')
+
+    if order_collection is None or user_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        # Buscar la orden primero para obtener userId
+        order_doc = order_collection.find_one({"id": int(find_id)})
+        if not order_doc:
+            raise ValueError("Order not found")
+
+        user_id = order_doc.get("userId")
+        deleteOrder(order_collection, review_collection, find_id)
+        updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+        deleteMultipleReviews(review_collection, order=find_id)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error deleting order: {e}'}
+
+    return {'status': 200, 'message': 'Order deleted and user order count updated'}
+
+
+@app.delete("/batch/orders")
+def delete_multiple_orders(find_ids: list[str] = Query(...)):
+    """
+    Deletes multiple orders.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    user_collection = getCollection(mongo_client, db, 'users')
+    review_collection = getCollection(mongo_client, db, 'reviews')
+    if order_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+       
+        # Update user order count for each order and delete reviews
+        for order_id in find_ids:
+            order_doc = order_collection.find_one({"id": int(order_id)})
+            if order_doc:
+                user_id = order_doc.get("userId")
+                updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+                deleteMultipleReviews(review_collection, order=order_id)
+        deleteMultipleOrders(order_collection, find_ids)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error deleting orders'}
+    return {'status': 200, 'message': 'Orders deleted'}
+
+@app.patch("/orders")
+def update_order(find_id: Union[str, None] = Query(default=None), order: Order = Order):
+    """
+    Updates a single order.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    if order_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        updateOrder(order_collection, find_id, order)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating order'}
+    return {'status': 200, 'message': 'Order updated'}
+
+@app.patch("/batch/orders")
+def update_multiple_orders(find_ids: Union[str, list, None] = Query(default=None), order: Order = Order):
+    """
+    Updates multiple orders.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    if order_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        updateMultipleOrders(order_collection, find_ids, order)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating orders'}
+    return {'status': 200, 'message': 'Orders updated'}
+
+@app.get("/orders")
+def get_orders(
+    id: Union[str, list, None] = Query(default=None),
+    user_id: Union[str, list, None] = Query(default=None),
+    restaurant_id: Union[str, list, None] = Query(default=None),
+    status: Union[str, list, None] = Query(default=None),
+    limit: int = Query(default=10),
+    sort: str = Query(default="orderedAt")):
+    """
+    Returns a list of orders.
+    """
+    order_collection = getCollection(mongo_client, db, 'orders')
+    if order_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        orders = getOrders(order_collection, id, user_id, restaurant_id, status, limit, sort)
+    except:
+        return {'status': 500, 'message': 'Query execution error'}
+    return {'status': 200, 'data': orders}

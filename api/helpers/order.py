@@ -2,6 +2,7 @@ import pymongo
 from utils.models import Order
 from bson import ObjectId
 from utils.utilsApi import serialize_document
+from datetime import datetime
 
 
 def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
@@ -34,17 +35,18 @@ def queryBuilder(id=None,user_id=None,restaurant_id=None,status=None):
             args['status'] = status[0]
         else:
             args['status'] = status
+
     return args
 
 
-def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None, limit=10):
+def getOrders(collection, id=None, user_id=None, restaurant_id=None, status=None, limit=10, sort="orderedAt"):
     """
     Returns a list of orders.
     """
     if collection is None:
         raise ValueError('Collection is None')
     args = queryBuilder(id, user_id, restaurant_id, status)
-    cursor = collection.find(args).limit(limit)
+    cursor = collection.find(args).sort(sort).limit(limit)
     orders = []
     for order in cursor:
         orders.append(serialize_document(order))
@@ -95,11 +97,13 @@ def updateMultipleOrders(collection, ids, order=Order):
 
 def deleteOrder(collection, id):
     """
-    Deletes an order from the database.
+    Deletes an order from the database, also deletes associated reviews.
     """
     if collection is None:
         raise ValueError('Collection is None')
+    
     result = collection.delete_one({"id": int(id)})
+
     return {"deleted_count": result.deleted_count}
 
 def deleteMultipleOrders(collection, ids):

@@ -3,7 +3,7 @@ from utils.models import Review
 from bson import ObjectId
 from utils.utilsApi import serialize_document
 
-def queryBuilder(id=None, user_id=None, restaurant_id=None, rating=None):
+def queryBuilder(id=None, user_id=None, order_id=None, restaurant_id=None, rating=None):
     args = {}
     if id is not None:
         if isinstance(id, list) and len(id) > 1:
@@ -19,6 +19,13 @@ def queryBuilder(id=None, user_id=None, restaurant_id=None, rating=None):
             args['userId'] = int(user_id[0])
         else:
             args['userId'] = int(user_id)
+    if order_id is not None:
+        if isinstance(order_id, list) and len(order_id) > 1:
+            args['orderId'] = {"$in": [int(order_id) for order_id in order_id]}
+        elif isinstance(order_id, list) and len(order_id) == 1:
+            args['orderId'] = int(order_id[0])
+        else:
+            args['orderId'] = int(order_id)
     if restaurant_id is not None:
         if isinstance(restaurant_id, list) and len(restaurant_id) > 1:
             args['restaurantId'] = {"$in": [int(restaurant_id) for restaurant_id in restaurant_id]}
@@ -28,11 +35,11 @@ def queryBuilder(id=None, user_id=None, restaurant_id=None, rating=None):
             args['restaurantId'] = int(restaurant_id)
     if rating is not None:
         if isinstance(rating, list) and len(rating) > 1:
-            args['rating'] = {"$in": [rating for rating in rating]}
+            args['stars'] = {"$in": [rating for rating in rating]}
         elif isinstance(rating, list) and len(rating) == 1:
-            args['rating'] = rating[0]
+            args['stars'] = rating[0]
         else:
-            args['rating'] = rating
+            args['stars'] = rating
     return args
 
 def get_review(collection, id=None, user_id=None, restaurant_id=None, rating=None, limit=10):
@@ -57,6 +64,7 @@ def createReview(collection, review=Review):
     review_dict=review.model_dump()
     
     existing = collection.find_one({"id": review_dict["id"]})
+
     if existing:
         raise ValueError('Restaurant with that id already exists')
     result = collection.insert_one(review_dict)
@@ -95,13 +103,15 @@ def deleteReview(collection,id):
     result = collection.delete_one({"id": int(id)})
     return {"deleted_count": result.deleted_count}
 
-def delete_multiple_reviews(collection, ids):
+def deleteMultipleReviews(collection, ids=None, order=None, restaurant=None):
     """
     Deletes multiple reviews from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_many({"id": {"$in": [int(i) for i in ids]}})
+    query = queryBuilder(ids=ids, order_id=order, restaurant_id=restaurant)
+    result = collection.delete_many(query)
     return {"deleted_count": result.deleted_count}
+
 
 

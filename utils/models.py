@@ -33,6 +33,7 @@ class MenuItem(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     price: Optional[float] = None
+    quantity: Optional[int] = None
     ingredients: Optional[List[Ingredient]] = None
     addedToMenu: Optional[str] = Field(default_factory=default_datetime)
     
@@ -55,11 +56,11 @@ class User(BaseModel):
 
 class Order(BaseModel):
     id: Optional[int] = None
-    userId: Optional[str] = None
+    userId: Optional[int] = None
     orderedAt: Optional[str] = Field(default_factory=default_datetime)
     arrivedAt: Optional[str] = None
     status: Optional[Status] = Status.PENDING
-    restaurantId: Optional[str] = None
+    restaurantId: Optional[int] = None
     items: Optional[List[MenuItem]] = []
     subtotal: Optional[float] = 0.0
     tax: Optional[float] = 0.0

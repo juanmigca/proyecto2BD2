@@ -44,8 +44,8 @@ if choice == "Create Restaurant":
         #restaurant id can only be an int
         resutaurant_id = st.number_input("Restaurant ID", min_value=1, step=1)
         restaurant_name = st.text_input("Restaurant Name")
-        restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f")
-        restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f")
+        restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f", max_value=180.0, min_value=-180.0)
+        restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f", min_value=-90.0, max_value=90.0)
         restaurant_address = st.text_input("Restaurant Address")
         create_cuisines = st.multiselect("Cuisines", [i['name'] for i in cuisines['data']])
         create_platos = st.multiselect("Menu Items", [i['name'] for i in platos['data']])

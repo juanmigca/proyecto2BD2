@@ -95,7 +95,7 @@ def generate_users_orders_reviews(num_users, restaurants):
         users.append(user)
         current_user_orders = []
         for j in range(user['numOrders']):
-            restaurant_ordered = random.choice(user['visitedRestaurants'])
+            restaurant_ordered = user['visitedRestaurants'][j % len(user['visitedRestaurants'])]
             restaurant_temp = [x for x in restaurants if x['id'] == restaurant_ordered][0]
             order = {
                 'id': len(orders) + 1,
@@ -106,7 +106,10 @@ def generate_users_orders_reviews(num_users, restaurants):
                 'restaurantId': restaurant_ordered,
                 'items': random.sample(restaurant_temp['menuItems'], random.randint(1, 5))
             }
-            order['subtotal'] = round(sum(item['price'] for item in order['items']),2)
+            for item in order['items']:
+                item['quantity'] = random.randint(1, 5)
+         
+            order['subtotal'] = round(sum(item['price'] * item['quantity'] for item in order['items']),2)
             order['tax'] = round(order['subtotal'] * 0.12, 2)
             order['tip'] = round(order['subtotal'] * random.uniform(0.05, 0.2), 2)
             order['total'] = round(order['subtotal'] + order['tax'] + order['tip'], 2)

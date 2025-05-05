@@ -143,4 +143,35 @@ def deleteMultipleUsers(collection, ids):
     return {"deleted_count": result.deleted_count}
     
     
+def updateUserOrderCount(user_collection, order_collection, user_id: int):
+    """
+    Updates the number of orders for a given user.
+    """
+    if user_collection is None or order_collection is None:
+        raise ValueError("One or both collections are None")
+
+    order_count = order_collection.count_documents({"userId": int(user_id)})
+
+    result = user_collection.update_one(
+        {"id": int(user_id)},
+        {"$set": {"numOrders": order_count}}
+    )
+    return {"user_id": user_id, "numOrders": order_count, "modified_count": result.modified_count}
+
+
+def updateUserReviewCount(user_collection, review_collection, user_id: int):
+    """
+    Updates the number of reviews for a given user.
+    """
+    if user_collection is None or review_collection is None:
+        raise ValueError("One or both collections are None")
+
+    review_count = review_collection.count_documents({"userId": int(user_id)})
+
+    result = user_collection.update_one(
+        {"id": int(user_id)},
+        {"$set": {"numReviews": review_count}}
+    )
+    return {"user_id": user_id, "numReviews": review_count, "modified_count": result.modified_count}
+
     
