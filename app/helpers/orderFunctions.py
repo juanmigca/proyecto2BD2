@@ -15,14 +15,13 @@ def urlBuilder(url, params=None):
     return url[:-1]
 
 
-def queryOrders(id=None, user_id=None, restaurant_id=None, status=None, fecha_gt=None, limit=10):
+def queryOrders(id=None, user_id=None, restaurant_id=None, status=None,  limit=10):
     url = f'{st.session_state.host}/orders'
     params = {
         "id": id,
         "user_id": user_id,
         "restaurant_id": restaurant_id,
         "status": status,
-        "fecha_gt": fecha_gt,
         "limit": limit
     }
     response = requests.get(url, params=params)
@@ -84,12 +83,13 @@ def display_order_card(order):
         st.markdown(f"**User ID:** {order.get('userId', 'N/A')}")
         st.markdown(f"**Restaurant ID:** {order.get('restaurantId', 'N/A')}")
         st.markdown(f"**Status:** {order.get('status', 'N/A')}")
-        st.markdown(f"**Fecha:** {order.get('fecha', 'N/A')}")
+        st.markdown(f"**Ordered At:** {order.get('orderedAt', 'N/A')}")
+        st.markdown(f"**Arrived At:** {order.get('arrivedAt', 'N/A')}")
         with st.expander("Order Details", expanded=False):
-            st.markdown(f"**Subtotal:** {order.get('subtotal', 'N/A')}")
-            st.markdown(f"**Tax:** {order.get('tax', 'N/A')}")
-            st.markdown(f"**Tip:** {order.get('tip', 'N/A')}")
-            st.markdown(f"**Total:** {order.get('total', 'N/A')}")
+            st.markdown(f"**Subtotal:** ${order.get('subtotal', 'N/A')}")
+            st.markdown(f"**Tax:** ${order.get('tax', 'N/A')}")
+            st.markdown(f"**Tip:** ${order.get('tip', 'N/A')}")
+            st.markdown(f"**Total:** ${order.get('total', 'N/A')}")
             st.markdown("**Items:**")
             for item in order.get('items', []):
                 st.markdown(f"- {item['name']} (x{item['quantity']}) - ${item['price']}")

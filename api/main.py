@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
 from utils.utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, createRestaurant,  deleteRestaurantsWrapper
+from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, createRestaurant,  deleteRestaurantsWrapper, updateRestaurantRating
 from api.helpers.menuItems import getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, deleteMultipleMenuItems, updateMultipleMenuItem
 from api.helpers.ingredients import getIngredients, createIngredient, updateIngredient, deleteIngredient, deleteMultipleIngredient, multipleUpdateIngredient
 from api.helpers.cuisines import getCuisine, createCuisine, updateCuisine, updateMultipleCuisine, deleteCuisine, deleteMultipleCuisine
@@ -577,7 +577,7 @@ def delete_order(find_id: Union[str, None] = Query(default=None)):
             raise ValueError("Order not found")
 
         user_id = order_doc.get("userId")
-        deleteOrder(order_collection, review_collection, find_id)
+        deleteOrder(order_collection, find_id)
         updateUserOrderCount(user_collection, order_collection, user_id=user_id)
         deleteMultipleReviews(review_collection, order=find_id)
     except ValueError as e:
@@ -589,7 +589,7 @@ def delete_order(find_id: Union[str, None] = Query(default=None)):
 
 
 @app.delete("/batch/orders")
-def delete_multiple_orders(find_ids: list[str] = Query(...)):
+def delete_multiple_orders(find_id: Union[int, list, None]= Query(default=None)):
     """
     Deletes multiple orders.
     """
@@ -598,16 +598,18 @@ def delete_multiple_orders(find_ids: list[str] = Query(...)):
     review_collection = getCollection(mongo_client, db, 'reviews')
     if order_collection is None:
         return {'status': 502, 'message': 'Error connecting to collection'}
+    user_ids = []
     try:
-       
-        # Update user order count for each order and delete reviews
-        for order_id in find_ids:
+        print(find_id)
+        for order_id in find_id:
             order_doc = order_collection.find_one({"id": int(order_id)})
+            print(order_doc)
             if order_doc:
-                user_id = order_doc.get("userId")
-                updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+                user_ids.append(order_doc.get("userId"))
                 deleteMultipleReviews(review_collection, order=order_id)
-        deleteMultipleOrders(order_collection, find_ids)
+        deleteMultipleOrders(order_collection, find_id)
+        for user_id in user_ids:
+            updateUserOrderCount(user_collection, order_collection, user_id=user_id)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except:
@@ -631,7 +633,7 @@ def update_order(find_id: Union[str, None] = Query(default=None), order: Order =
     return {'status': 200, 'message': 'Order updated'}
 
 @app.patch("/batch/orders")
-def update_multiple_orders(find_ids: Union[str, list, None] = Query(default=None), order: Order = Order):
+def update_multiple_orders(find_id: Union[str, list, None] = Query(default=None), order: Order = Order):
     """
     Updates multiple orders.
     """
@@ -639,7 +641,7 @@ def update_multiple_orders(find_ids: Union[str, list, None] = Query(default=None
     if order_collection is None:
         return {'status': 502, 'message': 'Error connecting to collection'}
     try:
-        updateMultipleOrders(order_collection, find_ids, order)
+        updateMultipleOrders(order_collection, find_id, order)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except:
@@ -665,3 +667,131 @@ def get_orders(
     except:
         return {'status': 500, 'message': 'Query execution error'}
     return {'status': 200, 'data': orders}
+
+### 
+
+
+@app.get("/reviews")
+def get_reviews(
+    id: Union[str, list, None] = Query(default=None),
+    user_id: Union[str, list, None] = Query(default=None),
+    restaurant_id: Union[str, list, None] = Query(default=None),
+    rating: Union[str, list, None] = Query(default=None),
+    limit: int = Query(default=10)
+):
+    collection = getCollection(mongo_client, db, 'reviews')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        reviews = get_review(collection, id, user_id, restaurant_id, rating, limit)
+    except:
+        return {'status': 500, 'message': 'Query execution error'}
+    return {'status': 200, 'data': reviews}
+
+@app.post("/reviews")
+def create_review(review: Review):
+    collection = getCollection(mongo_client, db, 'reviews')
+    user_collection = getCollection(mongo_client, db, 'users')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+
+    if collection is None or user_collection is None or restaurant_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        createReview(collection, review)
+        updateUserReviewCount(user_collection, collection, user_id=review.userId)
+        updateRestaurantRating(restaurant_collection, collection, restaurant_id=review.restaurantId)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error creating review: {e}'}
+
+    return {'status': 200, 'message': 'Review created and counts updated'}
+
+@app.patch("/reviews")
+def update_review(find_id: Union[str, None] = Query(default=None), review: Review = Review):
+    collection = getCollection(mongo_client, db, 'reviews')
+    user_collection = getCollection(mongo_client, db, 'users')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+
+    if collection is None or user_collection is None or restaurant_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        updateReview(collection, find_id, review)
+        review_doc = collection.find_one({"id": int(find_id)})
+        if review_doc:
+            updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+            updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error updating review: {e}'}
+    return {'status': 200, 'message': 'Review updated and counts refreshed'}
+
+@app.patch("/batch/reviews")
+def update_multiple_reviews(find_id: Union[list, str, None] = Query(default=None), review: Review = Review):
+    collection = getCollection(mongo_client, db, 'reviews')
+    user_collection = getCollection(mongo_client, db, 'users')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+
+    if collection is None or user_collection is None or restaurant_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        updateMultipleReviews(collection, find_id, review)
+        ids = find_id if isinstance(find_id, list) else [find_id]
+        for review_id in ids:
+            review_doc = collection.find_one({"id": int(review_id)})
+            if review_doc:
+                updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+                updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error updating reviews: {e}'}
+    return {'status': 200, 'message': 'Reviews updated and counts refreshed'}
+
+@app.delete("/reviews")
+def delete_review(find_id: Union[str, None] = Query(default=None)):
+    collection = getCollection(mongo_client, db, 'reviews')
+    user_collection = getCollection(mongo_client, db, 'users')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+
+    if collection is None or user_collection is None or restaurant_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        review_doc = collection.find_one({"id": int(find_id)})
+        if not review_doc:
+            raise ValueError("Review not found")
+        deleteReview(collection, find_id)
+        updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+        updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error deleting review: {e}'}
+
+    return {'status': 200, 'message': 'Review deleted and counts updated'}
+
+@app.delete("/batch/reviews")
+def delete_multiple_reviews(find_id: Union[list, str, None] = Query(default=None)):
+    collection = getCollection(mongo_client, db, 'reviews')
+    user_collection = getCollection(mongo_client, db, 'users')
+    restaurant_collection = getCollection(mongo_client, db, 'restaurants')
+
+    if collection is None or user_collection is None or restaurant_collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+
+    try:
+        ids = find_id if isinstance(find_id, list) else [find_id]
+        for rid in ids:
+            review_doc = collection.find_one({"id": int(rid)})
+            if review_doc:
+                deleteReview(collection, rid)
+                updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+                updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except Exception as e:
+        return {'status': 500, 'message': f'Error deleting reviews: {e}'}
+
+    return {'status': 200, 'message': 'Reviews deleted and counts updated'}

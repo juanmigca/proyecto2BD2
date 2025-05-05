@@ -8,7 +8,7 @@ from helpers.orderFunctions import queryOrders, createOrder, updateOrder, delete
 from helpers.restaurantFunctions import queryRestaurants
 from utils.models import User, Order
 
-st.session_state.order_date = Order()
+st.session_state.order_data = Order()
 st.session_state.temp_items = []
 
 st.title("Orders")
@@ -108,7 +108,6 @@ elif choice == "Find Orders":
     search_user_id = st.text_input("Search by User ID")
     search_restaurant_id = st.text_input("Search by Restaurant ID")
     search_status = st.selectbox("Search by Status", ["", "pending", "completed", "cancelled"])
-    search_date = st.date_input("Orders after Date", value=None)
     limit = st.number_input("Limit", min_value=1, max_value=100, value=10)
 
     if st.button("Find Orders"):
@@ -117,9 +116,9 @@ elif choice == "Find Orders":
             user_ids = [int(i) for i in search_user_id.split(",")] if "," in search_user_id else int(search_user_id) if search_user_id else None
             rest_ids = [int(i) for i in search_restaurant_id.split(",")] if "," in search_restaurant_id else int(search_restaurant_id) if search_restaurant_id else None
             status = search_status or None
-            date_filter = datetime.combine(search_date, datetime.min.time()) if search_date else None
+            
 
-            data = queryOrders(ids, user_ids, rest_ids, status, date_filter, limit)
+            data = queryOrders(ids, user_ids, rest_ids, status, limit)
 
             if data and data['status'] == 200:
                 st.session_state.orders = data['data']
@@ -143,16 +142,18 @@ elif choice == "Update Orders":
     update_mode = st.selectbox("Update mode", ["Single", "Multiple"])
 
     st.subheader("Update")
-    new_status = st.selectbox("New Status", ["", "pending", "completed", "cancelled"])
-    new_fecha = st.date_input("New Date", value=None)
+    new_status = st.selectbox("New Status", ["", "En Camino", "Entregado", "Cancelado"])
+    new_fecha = st.date_input("New Arrived At", value=None)
+    new_hora = st.time_input("New Arrived At Time", value=None)
 
     if st.button("Update Order"):
         try:
             update_ids = [int(i) for i in update_search_id.split(",")] if "," in update_search_id else int(update_search_id)
+            fecha_hora = datetime.combine(new_fecha, new_hora) if new_fecha and new_hora else None
             order_update = Order(
                 id=None,
                 status=new_status if new_status else None,
-                fecha=datetime.combine(new_fecha, datetime.min.time()) if new_fecha else None
+                arrivedAt=fecha_hora.strftime("%Y-%m-%d %H:%M:%S") if fecha_hora else None
             )
             res = updateOrder(update_mode, update_ids, order_update)
             if res['status'] == 200:

@@ -73,7 +73,7 @@ class Review(BaseModel):
     restaurantId: Optional[int] = None
     orderId: Optional[int] = None
     stars: Optional[int] = Field(default=None, ge=1, le=10)
-    comment: Optional[str]
+    comment: Optional[str] = None
     timestamp: Optional[str] = Field(default_factory=default_datetime)
     
 

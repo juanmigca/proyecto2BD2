@@ -153,3 +153,37 @@ def deleteRestaurantsWrapper(collection, id, name, cuisines, mode):
         return deleteMultipleRestaurants(collection, id, name, cuisines)
     else:
         raise ValueError(f"Invalid mode {mode}")
+    
+def updateRestaurantRating(restaurant_collection, review_collection, restaurant_id: int):
+    """
+    Updates the average rating and review count for a restaurant.
+    """
+    if restaurant_collection is None or review_collection is None:
+        raise ValueError("One or more collections are None")
+
+    # Obtener todas las reseñas del restaurante
+    reviews_cursor = review_collection.find({"restaurantId": int(restaurant_id)})
+    reviews = list(reviews_cursor)
+
+    if not reviews:
+        # Si no hay reseñas, resetear el rating
+        restaurant_collection.update_one(
+            {"id": int(restaurant_id)},
+            {"$set": {"rating": None, "numReviews": 0}}
+        )
+        return {"message": "Restaurant rating reset to None"}
+
+    total_stars = sum([r.get("stars", 0) for r in reviews])
+    avg_rating = round(total_stars / len(reviews), 2)
+    review_count = len(reviews)
+
+    # Actualizar el restaurante
+    restaurant_collection.update_one(
+        {"id": int(restaurant_id)},
+        {"$set": {
+            "rating": avg_rating,
+            "numReviews": review_count
+        }}
+    )
+
+    return {"message": f"Restaurant rating updated to {avg_rating} with {review_count} reviews"}

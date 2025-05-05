@@ -109,7 +109,7 @@ def deleteMultipleReviews(collection, ids=None, order=None, restaurant=None):
     """
     if collection is None:
         raise ValueError('Collection is None')
-    query = queryBuilder(ids=ids, order_id=order, restaurant_id=restaurant)
+    query = queryBuilder(id=ids, order_id=order, restaurant_id=restaurant)
     result = collection.delete_many(query)
     return {"deleted_count": result.deleted_count}
 
