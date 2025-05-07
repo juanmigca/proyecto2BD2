@@ -83,14 +83,12 @@ def display_restaurant_card(restaurant):
                 st.write("No menu items available.")
                 
                 
-def queryPlatos(ids=None):
+def queryPlatos():
     """
     Queries the menu items from the API.
     """
     url  = f'{st.session_state.host}/menuItems'
-    
-    if ids is not None:
-        url = urlBuilder(url, {"name": ids})
+   
         
     response = requests.get(url)
     if response.status_code == 200:
@@ -115,3 +113,80 @@ def createRestaurant(restaurant):
         st.error(f"Error creating restaurant: {response.status_code}")
 
         return response.json()
+    
+def updateRestaurant(mode, id, name, cuisine, update_data):
+    """
+    Updates one or multiple restaurants based on mode
+    """
+
+    params = {
+        "find_id": id,
+        "find_name": name,
+        "find_cuisine": cuisine
+    }
+    if mode == "Single":
+    
+        url = f'{st.session_state.host}/restaurants'
+        builtUrl = urlBuilder(url, params)
+        data = update_data.model_dump()
+
+        response = requests.patch(builtUrl, json=data)
+        if response.status_code == 200:
+
+            return response.json()
+        else:
+            st.error(f"Error updating restaurant: {response.status_code}")
+
+            return response.json()
+
+    
+    elif mode == "Multiple":
+        url = f'{st.session_state.host}/batch/restaurants'
+        builtUrl = urlBuilder(url, params)
+        data = update_data.model_dump()
+
+        response = requests.patch(builtUrl, json=data)
+        if response.status_code == 200:
+
+            return response.json()
+        else:
+            st.error(f"Error updating restaurants: {response.status_code}")
+
+            return response.json()
+    
+
+def deleteRestaurant(mode, id, name, cuisine):
+    params = {
+        "find_id": id,
+        "find_name": name,
+        "find_cuisine": cuisine
+    }
+    if mode == "Single":
+    
+        url = f'{st.session_state.host}/restaurants'
+        builtUrl = urlBuilder(url, params)
+        
+
+        response = requests.delete(builtUrl)
+        if response.status_code == 200:
+
+            return response.json()
+        else:
+            st.error(f"Error deleting restaurant: {response.status_code}")
+
+            return response.json()
+
+    
+    elif mode == "Multiple":
+        url = f'{st.session_state.host}/batch/restaurants'
+        builtUrl = urlBuilder(url, params)
+       
+
+        response = requests.delete(builtUrl)
+        if response.status_code == 200:
+
+            return response.json()
+        else:
+            st.error(f"Error deleting restaurants: {response.status_code}")
+
+            return response.json()

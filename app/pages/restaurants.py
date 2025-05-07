@@ -1,5 +1,5 @@
 import streamlit as st
-from helpers.restaurantFunctions import queryRestaurants, queryCuisines, display_restaurant_card, queryPlatos, createRestaurant
+from helpers.restaurantFunctions import queryRestaurants, queryCuisines, display_restaurant_card, queryPlatos, createRestaurant, updateRestaurant, deleteRestaurant
 import sys
 import os
 from datetime import datetime
@@ -38,13 +38,14 @@ if choice == "Create Restaurant":
     with st.form(key='create_restaurant_form'):
         cuisines = queryCuisines()
         platos = queryPlatos()
-
+        #st.write(cuisines)
+        #st.write(platos)
         st.subheader("Create Restaurant")
         #restaurant id can only be an int
         resutaurant_id = st.number_input("Restaurant ID", min_value=1, step=1)
         restaurant_name = st.text_input("Restaurant Name")
-        restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f")
-        restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f")
+        restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f", max_value=180.0, min_value=-180.0)
+        restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f", min_value=-90.0, max_value=90.0)
         restaurant_address = st.text_input("Restaurant Address")
         create_cuisines = st.multiselect("Cuisines", [i['name'] for i in cuisines['data']])
         create_platos = st.multiselect("Menu Items", [i['name'] for i in platos['data']])
@@ -86,7 +87,7 @@ if choice == "Create Restaurant":
             res = createRestaurant(data)
             #res = {'status': 200, 'message': 'Restaurant created successfully!'}
             if res['status'] == 200:
-                st.session_state.restaurants.append(res)
+                
                 st.success(f"Restaurant '{restaurant_name}' created successfully!")
             else:
                 st.error(f"Error creating restaurant: {res['message']}")
@@ -125,22 +126,108 @@ elif choice == "Find Restaurants":
       
 
 elif choice == "Update Restaurant":
+    cuisines = queryCuisines()
+    platos = queryPlatos()
     st.subheader("Update Restaurant")
-    restaurant_id = st.text_input("Restaurant ID")
-    new_name = st.text_input("New Restaurant Name")
-    new_location = st.text_input("New Restaurant Location")
-    new_cuisine = st.text_input("New Cuisine Type")
-    new_rating = st.number_input("New Rating", min_value=1, max_value=5, value=3)
-    
+    st.subheader("Find")
+    update_search_id = st.text_input("Restaurant ID (Multiple e.g. 1,3,4)")
+    update_search_name = st.text_input("Restaurant Name (Multiple e.g. McDonalds,Wendys or single e.g. McDonalds)")
+    update_search_cuisine = st.multiselect("Cuisines", [i['name'] for i in cuisines['data']])
+    update_mode = st.selectbox("Update mode", ["Single", "Multiple"])
+
+
+    st.subheader("Update")
+    update_new_name = st.text_input("New Restaurant Name")
+    update_new_address = st.text_input("New Restaurant Address")
+    update_new_cuisines = st.multiselect("New Cuisines", [i['name'] for i in cuisines['data']])
+    update_new_platos = st.multiselect("New Menu Items", [i['name'] for i in platos['data']])
+
+
     if st.button("Update Restaurant"):
-        # Here you would typically call a function to update the restaurant in the database
-        st.success(f"Restaurant '{restaurant_id}' updated successfully!")
+        try: 
+            if update_search_id != "":
+                update_ids = update_search_id.split(",")
+                update_ids = [int(i) for i in update_ids]
+                if len(update_ids) == 1:
+                    update_ids = update_ids[0]
+            else:
+                update_ids = update_search_id
+            update_names = update_search_name.split(",")
+            if len(update_names) == 1:
+                update_names = update_names[0]
+
+            if update_names == "":
+                update_names = None
+            
+            if update_new_address == "":
+                update_new_address = None
+            
+            #remove _id from platosCreate
+            if update_new_platos != []:
+                platos_update = [i for i in platos['data'] if i['name'] in update_new_platos]
+                for i in platos_update:
+                    del i['_id']
+                    if isinstance(i['addedToMenu'], datetime):
+                        i['addedToMenu'] = i['addedToMenu'].strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    else:
+                        i['addedToMenu'] = str(i['addedToMenu'])
+            else: 
+                platos_update = None
+
+            if update_new_cuisines == []:
+                update_new_cuisines = None
+
+            update_restaurant = Restaurant(
+                id=None,
+                name=update_new_name,
+                address=update_new_address,
+                cuisines=update_new_cuisines,
+                location = None,
+                menuItems = platos_update,
+                rating = None,
+                numReviews= None
+            )
+            res = updateRestaurant(update_mode, update_ids, update_names, update_search_cuisine, update_restaurant)
+            st.write(res)
+            if res['status'] == 200:
+                st.success(f"Success! {res['message']}!")
+            else:
+                st.error(f"Error updating restaurant: {res['message']}")
+        except:
+            st.error(f"IDs can only be integers {update_new_platos}")
+
+      
 
 elif choice == "Delete Restaurant":
     st.subheader("Delete Restaurant")
-    restaurant_id = st.text_input("Restaurant ID")
+    cuisines = queryCuisines()
+    delete_search_id = st.text_input("Restaurant ID (Multiple e.g. 1,3,4 or single e.g. 1)")
+    delete_search_name = st.text_input("Restaurant Name (Multiple e.g. McDonalds,Wendys or single e.g. McDonalds)")
+    delete_search_cuisines = st.multiselect("Cuisines", [i['name'] for i in cuisines['data']])
+    delete_mode = st.selectbox("Update mode", ["Single", "Multiple"])
+
     
     if st.button("Delete Restaurant"):
-        # Here you would typically call a function to delete the restaurant from the database
-        st.success(f"Restaurant '{restaurant_id}' deleted successfully!")
+        
+        try: 
+            if delete_search_id != "":
+                delete_ids = delete_search_id.split(",")
+                delete_ids = [int(i) for i in delete_ids]
+                if len(delete_ids) == 1:
+                    delete_ids = delete_ids[0]
+            else:
+                delete_ids = delete_search_id
+            delete_names = delete_search_name.split(",")
+            if len(delete_names) == 1:
+                delete_names = delete_names[0]
+            
+            res = deleteRestaurant(delete_mode, delete_ids, delete_search_name, delete_search_cuisines)
+            if res['status'] == 200:
+                st.success(f"Success! {res['message']}!")
+            else:
+                st.error(f"Error updating restaurant: {res['message']}")
+        except:
+            st.error(f"IDs can only be integers {delete_search_id}")
 
+        

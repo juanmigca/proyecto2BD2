@@ -14,6 +14,7 @@ pages_nav = [
     st.Page("pages/users.py", title='Users'),
     st.Page("pages/orders.py", title='Orders'),
     st.Page("pages/reviews.py", title='Reviews'),
+    st.Page("pages/formularios.py", title='Resúmenes'),
     ]
 
 
