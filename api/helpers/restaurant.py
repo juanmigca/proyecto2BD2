@@ -187,3 +187,62 @@ def updateRestaurantRating(restaurant_collection, review_collection, restaurant_
     )
 
     return {"message": f"Restaurant rating updated to {avg_rating} with {review_count} reviews"}
+
+def updateRestaurantRating2(collection, restaurant_id: int):
+    """
+    Updates the average rating and review count for a restaurant.
+    """
+    pipeline = [
+        {
+            '$match': {
+                'id': restaurant_id
+            }
+        }, {
+            '$lookup': {
+                'from': 'reviews', 
+                'localField': 'id', 
+                'foreignField': 'restaurantId', 
+                'as': 'reviews'
+            }
+        }, {
+            '$addFields': {
+                'rating': {
+                    '$cond': [
+                        {
+                            '$gt': [
+                                {
+                                    '$size': '$reviews'
+                                }, 0
+                            ]
+                        }, {
+                            '$round': [
+                                {
+                                    '$avg': '$reviews.stars'
+                                }, 2
+                            ]
+                        }, '$rating'
+                    ]
+                }, 
+                'numReviews': {
+                    '$size': '$reviews'
+                }
+            }
+        }, {
+            '$project': {
+                'menuItems.quantity': 0, 
+                'reviews': 0
+            }
+        }, {
+            '$merge': {
+                'into': 'restaurants', 
+                'on': '_id', 
+                'whenMatched': 'merge', 
+                'whenNotMatched': 'discard'
+            }
+        }
+    ]
+    collection.aggregate(pipeline)
+    updated_restaurant = collection.find_one({"id": restaurant_id})
+    rating = updated_restaurant.get("rating", None)
+    num_reviews = updated_restaurant.get("numReviews", 0)
+    return {"message": f"Restaurant rating updated to {rating} with {num_reviews} reviews"}

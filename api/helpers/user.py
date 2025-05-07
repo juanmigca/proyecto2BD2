@@ -180,4 +180,156 @@ def updateUserReviewCount(user_collection, review_collection, user_id: int):
     )
     return {"user_id": user_id, "numReviews": review_count, "modified_count": result.modified_count}
 
+def updateUserOrderReviewCount(user_collection, user_id: int):
+    """
+    Updates the number of orders and reviews for a given user.
+    """
+    if user_collection is None:
+        raise ValueError("Collection is None")
+    before_update = user_collection.find_one({"id": user_id})
+    if before_update is None:
+        raise ValueError("User not found")
+    before_order_count = before_update.get("numOrders", 0)
+    before_review_count = before_update.get("numReviews", 0)
     
+    pipeline = [
+        {
+            '$match': {
+                'id': user_id
+            }
+        }, {
+            '$lookup': {
+                'from': 'orders', 
+                'localField': 'id', 
+                'foreignField': 'userId', 
+                'as': 'orders'
+            }
+        }, {
+            '$lookup': {
+                'from': 'reviews', 
+                'localField': 'id', 
+                'foreignField': 'userId', 
+                'as': 'reviews'
+            }
+        }, {
+            '$addFields': {
+                'numOrders': {
+                    '$size': '$orders'
+                }, 
+                'numReviews': {
+                    '$size': '$reviews'
+                }
+            }
+        }, {
+            '$project': {
+                'orders': 0, 
+                'reviews': 0
+            }
+        }, {
+            '$merge': {
+                'into': 'users', 
+                'on': '_id', 
+                'whenMatched': 'merge', 
+                'whenNotMatched': 'discard'
+            }
+        }
+    ]
+    user_collection.aggregate(pipeline)
+    updated_user = user_collection.find_one({"id": user_id})
+    if updated_user is None:
+        raise ValueError("User not found after update")
+    after_order_count = updated_user.get("numOrders", 0)
+    after_review_count = updated_user.get("numReviews", 0)
+    return {
+        "user_id": user_id, 
+        "numOrders": {
+            "before": before_order_count, 
+            "after": after_order_count
+        }, 
+        "numReviews": {
+            "before": before_review_count, 
+            "after": after_review_count
+        }
+    }
+
+def updateUserVisitedRestaurants(user_collection, user_id: int):
+    if user_collection is None:
+        raise ValueError("Collection is None")
+    before_update = user_collection.find_one({"id": user_id})
+    if before_update is None:
+        raise ValueError("User not found")
+    before_visited_restaurants = before_update.get("visitedRestaurants", [])
+    pipeline = [
+        {
+            '$match': {
+                'id': user_id
+            }
+        }, {
+            '$lookup': {
+                'from': 'orders', 
+                'localField': 'id', 
+                'foreignField': 'userId', 
+                'as': 'orders'
+            }
+        }, {
+            '$project': {
+                'id': 1, 
+                'username': 1, 
+                'numOrders': 1, 
+                'numReviews': 1, 
+                'visitedRestaurants': 1, 
+                'orders': {
+                    '$filter': {
+                        'input': '$orders', 
+                        'as': 'order', 
+                        'cond': {
+                            '$eq': [
+                                '$$order.status', 'Entregado'
+                            ]
+                        }
+                    }
+                }
+            }
+        }, {
+            '$addFields': {
+                'visitedRestaurants': {
+                    '$setUnion': [
+                        [], {
+                            '$map': {
+                                'input': '$orders', 
+                                'as': 'order', 
+                                'in': '$$order.restaurantId'
+                            }
+                        }
+                    ]
+                }
+            }
+        }, {
+            '$project': {
+                'orders': 0
+            }
+        }
+    ]
+    result = user_collection.aggregate(pipeline)
+    for cursor in result:
+        after_visited_restaurants = cursor.get("visitedRestaurants", [])
+    
+    set_before = set(before_visited_restaurants)
+    set_after = set(after_visited_restaurants)
+    new_restaurants = list(set_after - set_before)
+    deleted_restaurants = list(set_before - set_after)
+
+    #add new restaurants
+    if new_restaurants:
+        user_collection.update_one(
+            {"id": user_id},
+            {"$addToSet": {"visitedRestaurants": {"$each": new_restaurants}}}
+        )
+
+    #remove deleted restaurants
+    if deleted_restaurants:
+        user_collection.update_one(
+            {"id": user_id},
+            {"$pull": {"visitedRestaurants": {"$in": deleted_restaurants}}}
+        )
+    return {"user_id": user_id, "visitedRestaurants": after_visited_restaurants}

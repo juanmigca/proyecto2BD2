@@ -4,14 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
 from utils.utilsApi import getMongoClient, getCollection
 from contextlib import asynccontextmanager
-from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, createRestaurant,  deleteRestaurantsWrapper, updateRestaurantRating
+from api.helpers.restaurant import getRestaurants, updateRestaurantWrapper, createRestaurant,  deleteRestaurantsWrapper, updateRestaurantRating, updateRestaurantRating2
 from api.helpers.menuItems import getMenuItems, createMenuItem, updateMenuItem, deleteMenuItem, deleteMultipleMenuItems, updateMultipleMenuItem
 from api.helpers.ingredients import getIngredients, createIngredient, updateIngredient, deleteIngredient, deleteMultipleIngredient, multipleUpdateIngredient
 from api.helpers.cuisines import getCuisine, createCuisine, updateCuisine, updateMultipleCuisine, deleteCuisine, deleteMultipleCuisine
-from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers, updateUserOrderCount, updateUserReviewCount
+from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers, updateUserOrderCount, updateUserReviewCount, updateUserOrderReviewCount, updateUserVisitedRestaurants
 from api.helpers.review import get_review, createReview, updateReview, updateMultipleReviews, deleteReview, deleteMultipleReviews
 from api.helpers.order import getOrders, createOrder, updateOrder, updateMultipleOrders, deleteOrder, deleteMultipleOrders
 from utils.models import Restaurant, User, Review, Order, MenuItem, Ingredient, Cuisines
+from api.helpers.formularios import get_formulario
 
 
 ### Defaults
@@ -438,6 +439,8 @@ def get_users(id: Union[str, list, None] = Query(default=None),
         return {'status': 502, 'message': 'Error connecting to collection'}
 
     try:
+        if id is None:
+            updateUserVisitedRestaurants(user_collection,id)
         users = getUser(user_collection, id, username, orderMode, numOrders, reviewsMode, numReviews, visitedRestaurants, limit, sort)
     except:
         return {'status': 500, 'message': 'Query execution error'}
@@ -549,8 +552,9 @@ def create_order(order: Order):
 
     try:
         createOrder(order_collection, order)
-        updateUserOrderCount(user_collection, order_collection, user_id=order.userId)
-        updateUserVisitedRestaurants(user_collection, order.restaurantId, order.userId, "create")
+        #updateUserOrderCount(user_collection, order_collection, user_id=order.userId)
+        updateUserOrderReviewCount(user_collection, order.userId)
+        updateUserVisitedRestaurants(user_collection,order.userId)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -579,8 +583,10 @@ def delete_order(find_id: Union[str, None] = Query(default=None)):
 
         user_id = order_doc.get("userId")
         deleteOrder(order_collection, find_id)
-        updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+        #updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+        updateUserOrderReviewCount(user_collection, user_id)
         deleteMultipleReviews(review_collection, order=find_id)
+        updateUserVisitedRestaurants(user_collection,user_id)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -610,7 +616,9 @@ def delete_multiple_orders(find_id: Union[int, list, None]= Query(default=None))
                 deleteMultipleReviews(review_collection, order=order_id)
         deleteMultipleOrders(order_collection, find_id)
         for user_id in user_ids:
-            updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+            #updateUserOrderCount(user_collection, order_collection, user_id=user_id)
+            updateUserOrderReviewCount(user_collection, user_id)
+            updateUserVisitedRestaurants(user_collection,user_id)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except:
@@ -699,8 +707,9 @@ def create_review(review: Review):
         return {'status': 502, 'message': 'Error connecting to collection'}
     try:
         createReview(collection, review)
-        updateUserReviewCount(user_collection, collection, user_id=review.userId)
-        updateRestaurantRating(restaurant_collection, collection, restaurant_id=review.restaurantId)
+        #updateUserReviewCount(user_collection, collection, user_id=review.userId)
+        updateUserOrderReviewCount(user_collection, review.userId)
+        updateRestaurantRating2(restaurant_collection, restaurant_id=review.restaurantId)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -720,8 +729,9 @@ def update_review(find_id: Union[str, None] = Query(default=None), review: Revie
         updateReview(collection, find_id, review)
         review_doc = collection.find_one({"id": int(find_id)})
         if review_doc:
-            updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
-            updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+            #updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+            updateUserOrderReviewCount(user_collection, review_doc['userId'])
+            updateRestaurantRating2(restaurant_collection, restaurant_id=review_doc['restaurantId'])
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -743,8 +753,9 @@ def update_multiple_reviews(find_id: Union[list, str, None] = Query(default=None
         for review_id in ids:
             review_doc = collection.find_one({"id": int(review_id)})
             if review_doc:
-                updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
-                updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+                #updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+                updateUserOrderReviewCount(user_collection, review_doc['userId'])
+                updateRestaurantRating2(restaurant_collection, restaurant_id=review_doc['restaurantId'])
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -764,8 +775,9 @@ def delete_review(find_id: Union[str, None] = Query(default=None)):
         if not review_doc:
             raise ValueError("Review not found")
         deleteReview(collection, find_id)
-        updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
-        updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+        #updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+        updateUserOrderReviewCount(user_collection, review_doc['userId'])
+        updateRestaurantRating2(restaurant_collection, restaurant_id=review_doc['restaurantId'])
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -788,8 +800,9 @@ def delete_multiple_reviews(find_id: Union[list, str, None] = Query(default=None
             review_doc = collection.find_one({"id": int(rid)})
             if review_doc:
                 deleteReview(collection, rid)
-                updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
-                updateRestaurantRating(restaurant_collection, collection, restaurant_id=review_doc['restaurantId'])
+                #updateUserReviewCount(user_collection, collection, user_id=review_doc['userId'])
+                updateUserOrderReviewCount(user_collection, review_doc['userId'])
+                updateRestaurantRating2(restaurant_collection, restaurant_id=review_doc['restaurantId'])
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -797,3 +810,19 @@ def delete_multiple_reviews(find_id: Union[list, str, None] = Query(default=None
 
     return {'status': 200, 'message': 'Reviews deleted and counts updated'}
 
+### Formularios de Resúmenes
+@app.get("/summary")
+def get_summary(tipo: str):
+    """
+    Returns the requested summary.
+    """
+    collection = getCollection(mongo_client, db, 'Resumenes')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        content = get_formulario(collection, tipo)
+        if content is None:
+            return {'status': 404, 'message': 'Summary not found'}
+    except:
+        return {'status': 500, 'message': 'Query execution error'}
+    return {'status': 200, 'data': content}
