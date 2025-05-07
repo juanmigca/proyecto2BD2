@@ -55,7 +55,7 @@ def get_review(collection, id=None, user_id=None, restaurant_id=None, rating=Non
         reviews.append(serialize_document(review))
     return list(reviews)
 
-def createReview(collection, review=Review):
+def createReview(collection, review):
     """
     Creates a new review in the database.
     """
@@ -64,6 +64,11 @@ def createReview(collection, review=Review):
     review_dict=review.model_dump()
     
     existing = collection.find_one({"id": review_dict["id"]})
+
+    #find max id in collection and set it to review_dict["id"] if it is None
+    
+    max_id = collection.find_one(sort=[("id", pymongo.DESCENDING)])["id"]
+    review_dict["id"] = max_id + 1
 
     if existing:
         raise ValueError('Restaurant with that id already exists')

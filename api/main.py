@@ -550,6 +550,7 @@ def create_order(order: Order):
     try:
         createOrder(order_collection, order)
         updateUserOrderCount(user_collection, order_collection, user_id=order.userId)
+        updateUserVisitedRestaurants(user_collection, order.restaurantId, order.userId, "create")
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except Exception as e:
@@ -795,3 +796,4 @@ def delete_multiple_reviews(find_id: Union[list, str, None] = Query(default=None
         return {'status': 500, 'message': f'Error deleting reviews: {e}'}
 
     return {'status': 200, 'message': 'Reviews deleted and counts updated'}
+

@@ -149,6 +149,10 @@ def updateUserOrderCount(user_collection, order_collection, user_id: int):
     """
     if user_collection is None or order_collection is None:
         raise ValueError("One or both collections are None")
+    
+    
+
+    
 
     order_count = order_collection.count_documents({"userId": int(user_id)})
 
@@ -157,6 +161,8 @@ def updateUserOrderCount(user_collection, order_collection, user_id: int):
         {"$set": {"numOrders": order_count}}
     )
     return {"user_id": user_id, "numOrders": order_count, "modified_count": result.modified_count}
+
+
 
 
 def updateUserReviewCount(user_collection, review_collection, user_id: int):
