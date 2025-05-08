@@ -817,10 +817,25 @@ def get_summary(tipo: str):
     Returns the requested summary.
     """
     collection = getCollection(mongo_client, db, 'Resumenes')
+    if tipo == 'Resumen Ingredientes':
+        collection2 = getCollection(mongo_client, db, 'ingredients')
+    elif tipo == 'Resumen Cuisines':
+        collection2 = getCollection(mongo_client, db, 'cuisines')
+    elif tipo == 'Resumen Menu Items':
+        collection2 = getCollection(mongo_client, db, 'menuItems')
+    elif tipo == 'Resumen Órdenes por Status' or tipo == 'Resumen Órdenes':
+        collection2 = getCollection(mongo_client, db, 'orders')
+    elif tipo == 'Resumen Restaurantes':
+        collection2 = getCollection(mongo_client, db, 'restaurants')
+    elif tipo == 'Resumen Reviews':
+        collection2 = getCollection(mongo_client, db, 'reviews')
+    elif tipo == 'Resumen Por Usuario' or tipo == 'Resumen Usuario Promedio':
+        collection2 = getCollection(mongo_client, db, 'users')
+    
     if collection is None:
         return {'status': 502, 'message': 'Error connecting to collection'}
     try:
-        content = get_formulario(collection, tipo)
+        content = get_formulario(collection,collection2,  tipo)
         if content is None:
             return {'status': 404, 'message': 'Summary not found'}
     except:

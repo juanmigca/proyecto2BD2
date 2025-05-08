@@ -29,6 +29,7 @@ def display_summary_card(item):
                 continue
             if key == 'name' or key == 'cuisine' or key == '_id' or key == 'username':
                 st.markdown(f"### {value}")
+                continue
 
             if key == 'menuItems':
                 with st.expander("Menu Items"):

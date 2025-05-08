@@ -64,8 +64,10 @@ elif choice == "Resumen Órdenes":
         if data and data['status']==200:
             st.session_state.summary_data = data['data']
             if st.session_state.summary_data:
+                cols = st.columns(1)
                 for i, item in enumerate(st.session_state.summary_data):
-                    display_summary_card(item)
+                    with cols[i % 1]:
+                        display_summary_card(item)
             else:
                 st.write("No se encontró el Resumen General de Órdenes")
         else:
@@ -76,8 +78,10 @@ elif choice == "Resumen Órdenes":
         if data and data['status']==200:
             st.session_state.summary_data = data['data']
             if st.session_state.summary_data:
+                cols = st.columns(3)
                 for i, item in enumerate(st.session_state.summary_data):
-                    display_summary_card(item)
+                    with cols[i % 3]:
+                        display_summary_card(item)
             else:
                 st.write("No se encontró el Resumen por Status de Órdenes")
         else:
@@ -90,11 +94,13 @@ elif choice == "Resumen Restaurantes":
         for item in data['data']:
             ids.append(item['id'])
         choice2 = st.selectbox("Seleccione el restaurante para visualizar su resumen", ids)
-        eleccion = [item for item in data['data'] if item['id'] == choice2][0]
+        eleccion = [item for item in data['data'] if item['id'] == choice2]
         st.session_state.summary_data = eleccion
         if st.session_state.summary_data:
+            cols = st.columns(1)
             for i, item in enumerate(st.session_state.summary_data):
-                display_summary_card(item)
+                with cols[i % 1]:
+                    display_summary_card(item)
         else:
             st.write("No se encontró el Resumen del Restaurante")
     else:
@@ -106,8 +112,10 @@ elif choice == "Resumen Reviews":
     if data and data['status']==200:
         st.session_state.summary_data = data['data']
         if st.session_state.summary_data:
+            cols = st.columns(1)
             for i, item in enumerate(st.session_state.summary_data):
-                display_summary_card(item)
+                with cols[i % 1]:
+                    display_summary_card(item)
         else:
             st.write("No se encontró el Resumen de Reviews")
     else:
@@ -121,8 +129,10 @@ elif choice == "Resumen Usuarios":
         if data and data['status']==200:
             st.session_state.summary_data = data['data']
             if st.session_state.summary_data:
+                cols = st.columns(1)
                 for i, item in enumerate(st.session_state.summary_data):
-                    display_summary_card(item)
+                    with cols[i % 1]:
+                        display_summary_card(item)
             else:
                 st.write("No se encontró el Resumen General de Usuarios")
         else:
@@ -135,11 +145,13 @@ elif choice == "Resumen Usuarios":
             for item in data['data']:
                 ids.append(item['id'])
             choice3 = st.selectbox("Seleccione el usuario para visualizar su resumen", ids)
-            eleccion = [item for item in data['data'] if item['id'] == choice3][0]
+            eleccion = [item for item in data['data'] if item['id'] == choice3]
             st.session_state.summary_data = eleccion
             if st.session_state.summary_data:
+                cols = st.columns(1)
                 for i, item in enumerate(st.session_state.summary_data):
-                    display_summary_card(item)
+                    with cols[i % 1]:
+                        display_summary_card(item)
             else:
                 st.write("No se encontró el Resumen del Usuario")
         else:
