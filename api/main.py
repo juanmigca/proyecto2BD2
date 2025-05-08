@@ -441,7 +441,8 @@ def get_users(id: Union[str, list, None] = Query(default=None),
 
     try:
         if id is not None:
-            updateUserVisitedRestaurants(user_collection,id)
+            for i in id:
+                updateUserVisitedRestaurants(user_collection,i)
         users = getUser(user_collection, id, username, orderMode, numOrders, reviewsMode, numReviews, visitedRestaurants, limit, sort)
     except:
         return {'status': 500, 'message': 'Query execution error'}

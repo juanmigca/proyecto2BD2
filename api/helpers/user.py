@@ -253,15 +253,17 @@ def updateUserOrderReviewCount(user_collection, user_id: int):
     }
 
 def updateUserVisitedRestaurants(user_collection, user_id: int):
+    #print("HIIIIIIIIIIIIIIiiii")
     if user_collection is None:
         raise ValueError("Collection is None")
-    
+    user_id = int(user_id)
     before_update = user_collection.find_one({"id": user_id})
-    
+    #print(before_update)
     if before_update is None:
-        raise ValueError("User not found", before_update.data)
+        raise ValueError("User not found", before_update)
     
     before_visited_restaurants = before_update.get("visitedRestaurants", [])
+    #print(before_visited_restaurants)
     pipeline = [
         {
             '$match': {
@@ -314,9 +316,10 @@ def updateUserVisitedRestaurants(user_collection, user_id: int):
         }
     ]
     result = user_collection.aggregate(pipeline)
+    #print(result)
     for cursor in result:
         after_visited_restaurants = cursor.get("visitedRestaurants", [])
-    
+        #print(after_visited_restaurants)
     set_before = set(before_visited_restaurants)
     set_after = set(after_visited_restaurants)
     new_restaurants = list(set_after - set_before)
