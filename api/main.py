@@ -887,7 +887,7 @@ def update_multiple_ingredients(find_name:Union[list, str, None] = Query(default
     if collection is None:
         return {'status': 502, 'message': 'Error connecting to collection'}
     try:
-        multipleUpdateIngredient(collection, names, ingredient)
+        multipleUpdateIngredient(collection, find_name, ingredient)
     except ValueError as e:
         return {'status': 500, 'message': str(e)}
     except:
