@@ -1,6 +1,5 @@
 
 
-
 def runCuisinesPipeline(collection):
     """
     Run the cuisines pipeline to update the executive summary collection.
@@ -893,7 +892,7 @@ def runUsersPipelines(collection):
     
 
 
-def get_formulario(collection, tipo):
+def get_formulario(collection, collection2, tipo):
     """
     Returns a dictionary with the summary of the specified type.
     """
@@ -907,19 +906,19 @@ def get_formulario(collection, tipo):
         raise ValueError('Tipo must be a string')
     
     if tipo == 'Resumen Ingredientes':
-        runIngredientsPipeline(collection)
+        runIngredientsPipeline(collection2)
     elif tipo == 'Resumen Cuisines':
-        runCuisinesPipeline(collection)
+        runCuisinesPipeline(collection2)
     elif tipo == 'Resumen Menu Items':
-        runMenuItemsPipeline(collection)
+        runMenuItemsPipeline(collection2)
     elif tipo == 'Resumen Órdenes por Status' or tipo == 'Resumen Órdenes':
-        runOrdersPipelines(collection)
+        runOrdersPipelines(collection2)
     elif tipo == 'Resumen Restaurantes':
-        runRestaurantsPipeline(collection)
+        runRestaurantsPipeline(collection2)
     elif tipo == 'Resumen Reviews':
-        runReviewsPipeline(collection)
+        runReviewsPipeline(collection2)
     elif tipo == 'Resumen Por Usuario' or tipo == 'Resumen Usuario Promedio':
-        runUsersPipelines(collection)
+        runUsersPipelines(collection2)
 
     resumen = collection.find_one({"tipo": tipo})
     return resumen['contenido']
