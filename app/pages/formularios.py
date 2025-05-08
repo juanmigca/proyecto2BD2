@@ -13,7 +13,7 @@ choice = st.selectbox("Seleccione un resumen por visualizar", menu)
 
 if choice == "Resumen Ingredientes":
     data = queryFormularios(choice)
-    st.write(data)
+    #st.write(data)
     st.subheader("Resumen Ingredientes")
     if data and data['status']==200:
         st.session_state.summary_data = data['data']

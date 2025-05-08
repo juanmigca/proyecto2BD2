@@ -107,7 +107,8 @@ def display_user_card(user):
             }
             response = requests.get(url, params=params)
             for restaurant in response.json()["data"]:
-                st.markdown(f"- {restaurant["id"]}: {restaurant["name"]}")
+                st.markdown(f'- {restaurant["id"]}: {restaurant["name"]}')
+                #st.markdown(f"- {restaurant["id"]}: {restaurant["name"]}")
         else:
             st.markdown("No restaurants visited.")
 

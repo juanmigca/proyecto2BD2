@@ -440,7 +440,7 @@ def get_users(id: Union[str, list, None] = Query(default=None),
         return {'status': 502, 'message': 'Error connecting to collection'}
 
     try:
-        if id is None:
+        if id is not None:
             updateUserVisitedRestaurants(user_collection,id)
         users = getUser(user_collection, id, username, orderMode, numOrders, reviewsMode, numReviews, visitedRestaurants, limit, sort)
     except:
