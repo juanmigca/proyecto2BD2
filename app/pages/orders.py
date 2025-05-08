@@ -22,7 +22,7 @@ if choice == "Create Order":
 
         restaurants = queryRestaurants(limit=1000)
         st.subheader("Create Order")
-        order_id = st.number_input("Order ID", min_value=1, step=1)
+        #order_id = st.number_input("Order ID", min_value=1, step=1)
         user_id = st.number_input("User ID", min_value=1, step=1)
         restaurant_id = st.selectbox("Restaurant ID", [restaurant['id'] for restaurant in restaurants['data']])
         restaurant_selected = next((restaurant for restaurant in restaurants['data'] if restaurant['id'] == restaurant_id), None)
@@ -34,7 +34,7 @@ if choice == "Create Order":
         submit_button = st.form_submit_button(label='Seleccionar Restaurante')
         if submit_button:
             st.session_state.order_data = Order(
-                id=int(order_id),
+                id=None,
                 userId=int(user_id),
                 restaurantId=int(restaurant_id),
                 items=[]

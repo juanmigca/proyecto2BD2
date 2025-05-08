@@ -54,9 +54,11 @@ def createIngredient(collection, ingredient=Ingredient):
     if collection is None:
         raise ValueError('Collection is None')
     ingredient_dict = ingredient.model_dump()
-    existing_ingredient = collection.find_one({"_id": ingredient_dict["_id"]})
-    if existing_ingredient:
-        raise ValueError("Ingredient already exists")  # Item already exists, return None or handle as needed
+
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    
+    ingredient_dict["id"] = new_id
+        
     result = collection.insert_one(ingredient_dict)
     return {"inserted_id": str(result.inserted_id)}
 

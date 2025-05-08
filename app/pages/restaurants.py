@@ -42,7 +42,7 @@ if choice == "Create Restaurant":
         #st.write(platos)
         st.subheader("Create Restaurant")
         #restaurant id can only be an int
-        resutaurant_id = st.number_input("Restaurant ID", min_value=1, step=1)
+        #resutaurant_id = st.number_input("Restaurant ID", min_value=1, step=1)
         restaurant_name = st.text_input("Restaurant Name")
         restaurant_longitude = st.number_input("Restaurant Longitude", format="%.6f", max_value=180.0, min_value=-180.0)
         restaurant_latitude = st.number_input("Restaurant Latitude", format="%.6f", min_value=-90.0, max_value=90.0)
@@ -71,7 +71,7 @@ if choice == "Create Restaurant":
             url  = f'{st.session_state.host}/restaurants'
             
             data = Restaurant(
-                id=int(resutaurant_id),
+                id=None,
                 name=restaurant_name,
                 address=restaurant_address,
                 cuisines=create_cuisines,

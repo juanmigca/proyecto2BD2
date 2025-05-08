@@ -63,15 +63,10 @@ def createReview(collection, review):
         raise ValueError('Collection is None')
     review_dict=review.model_dump()
     
-    existing = collection.find_one({"id": review_dict["id"]})
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1    
+    review_dict["id"] = new_id
 
-    #find max id in collection and set it to review_dict["id"] if it is None
     
-    max_id = collection.find_one(sort=[("id", pymongo.DESCENDING)])["id"]
-    review_dict["id"] = max_id + 1
-
-    if existing:
-        raise ValueError('Restaurant with that id already exists')
     result = collection.insert_one(review_dict)
     return {"inserted_id": str(result.inserted_id)}
 

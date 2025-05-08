@@ -81,9 +81,8 @@ def createUser(collection, user):
     if collection is None: 
         raise ValueError('Collection is None')
     user_dict=user.model_dump()
-    existing_user = collection.find_one({"id": user_dict["id"]})
-    if existing_user:
-        raise ValueError('User already exists')
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    user_dict["id"] = new_id
     result = collection.insert_one(user_dict)
     return {"inserted_id": str(result.inserted_id)}
 

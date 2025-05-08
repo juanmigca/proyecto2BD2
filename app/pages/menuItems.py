@@ -28,7 +28,7 @@ if choice == "Create Menu Item":
 
         st.subheader("Create MenuItem")
         #MenuItem id can only be an int
-        menuItem_id = st.number_input("MenuItem ID", min_value=1, step=1)
+        #menuItem_id = st.number_input("MenuItem ID", min_value=1, step=1)
         MenuItem_name = st.text_input("MenuItem Name")
         MenuItem_price = st.number_input("Price", format="%.2f")
         create_ingredients = st.multiselect("Ingredients", [i['name'] for i in ingredients['data']])
@@ -50,7 +50,7 @@ if choice == "Create Menu Item":
            
             
             data = MenuItem(
-                id=int(menuItem_id),
+                id=None,
                 name=MenuItem_name,
                 price=MenuItem_price,
                 ingredients=ingredientsCreate,

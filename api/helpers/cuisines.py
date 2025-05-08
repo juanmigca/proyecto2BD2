@@ -61,6 +61,8 @@ def createMultipleCuisine(collection, cuisine=Cuisines):
     if collection is None:
         raise ValueError('Collection is None')
     cuisines_dict = cuisine.model_dump() 
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    cuisines_dict["id"] = new_id
     result = collection.insert_many(cuisines_dict)
     return {"inserted_ids": [str(id) for id in result.inserted_ids]}
 

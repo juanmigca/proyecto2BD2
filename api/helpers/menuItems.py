@@ -43,9 +43,10 @@ def createMenuItem(collection, menu_item):
         raise ValueError('Collection is None')
     
     menu_item_dict = menu_item.model_dump()
-    existing_menu_item = collection.find_one({"id": menu_item_dict["id"]})
-    if existing_menu_item:
-        raise ValueError ("Menu Item already exists")  
+ 
+
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    menu_item_dict["id"] = new_id
     
     result = collection.insert_one(menu_item_dict)
     return {"inserted_id": str(result.inserted_id)}

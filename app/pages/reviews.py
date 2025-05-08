@@ -24,7 +24,7 @@ if choice == "Create Review":
 
      
 
-        review_id = st.number_input("Review ID", min_value=1, step=1)
+        #review_id = st.number_input("Review ID", min_value=1, step=1)
         user_id = st.text_input("User ID")
         restaurant_id = st.text_input("Restaurant ID")
         order_id = st.text_input("Order ID (Optional)")
@@ -57,7 +57,7 @@ if choice == "Create Review":
                     st.error("User or Restaurant not found")
                 else:
                     st.session_state.review_data = Review(
-                        id=int(review_id),
+                        id=None,
                         userId=int(user_id),
                         restaurantId=int(restaurant_id),
                         orderId=int(order_id),

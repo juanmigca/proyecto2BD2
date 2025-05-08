@@ -60,9 +60,8 @@ def createOrder(collection, order):
     if collection is None:
         raise ValueError('Collection is None')
     order_dict = order.model_dump()
-    existing_order = collection.find_one({"id": order_dict["id"]})
-    if existing_order:
-        raise ValueError(f"Order with id {order_dict['id']} already exists.")
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    order_dict["id"] = new_id
     result = collection.insert_one(order_dict)
     return {"inserted_id": str(result.inserted_id)}
 

@@ -16,7 +16,7 @@ choice = st.selectbox("Select an option", menu)
 if choice == "Create User":
     with st.form(key='create_user_form'):
         st.subheader("Create User")
-        user_id = st.number_input("User ID", min_value=1, step=1)
+        #user_id = st.number_input("User ID", min_value=1, step=1)
         username = st.text_input("Username")
 
         submit_button = st.form_submit_button(label='Create User')
@@ -24,7 +24,7 @@ if choice == "Create User":
             
 
             data = User(
-                id=int(user_id),
+                id=None,
                 username=username
             )
 

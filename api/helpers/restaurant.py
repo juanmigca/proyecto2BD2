@@ -57,9 +57,8 @@ def createRestaurant(collection, restaurant):
     
     restaurant_dict = restaurant.model_dump()
     
-    existing = collection.find_one({"id": restaurant_dict["id"]})
-    if existing:
-        raise ValueError('Restaurant with that id already exists')
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    restaurant_dict["id"] = new_id
 
   
     result = collection.insert_one(restaurant_dict)
