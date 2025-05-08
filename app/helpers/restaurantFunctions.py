@@ -61,6 +61,7 @@ def queryCuisines():
 def display_restaurant_card(restaurant):
     with st.container():
         st.markdown(f"### {restaurant['name']}")
+        st.markdown(f"**ID:** {restaurant['id']}")
         st.markdown(f"**Cuisines:** {', '.join(restaurant['cuisines'])}")
         st.markdown(f"**Rating:** {round(float(restaurant['rating']),2)}/10")
 
