@@ -186,8 +186,9 @@ def updateUserOrderReviewCount(user_collection, user_id: int):
     if user_collection is None:
         raise ValueError("Collection is None")
     before_update = user_collection.find_one({"id": user_id})
+    
     if before_update is None:
-        raise ValueError("User not found")
+        raise ValueError("User not found",user_id)
     before_order_count = before_update.get("numOrders", 0)
     before_review_count = before_update.get("numReviews", 0)
     
@@ -254,9 +255,12 @@ def updateUserOrderReviewCount(user_collection, user_id: int):
 def updateUserVisitedRestaurants(user_collection, user_id: int):
     if user_collection is None:
         raise ValueError("Collection is None")
+    
     before_update = user_collection.find_one({"id": user_id})
+    
     if before_update is None:
-        raise ValueError("User not found")
+        raise ValueError("User not found", before_update.data)
+    
     before_visited_restaurants = before_update.get("visitedRestaurants", [])
     pipeline = [
         {

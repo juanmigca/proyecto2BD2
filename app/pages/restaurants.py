@@ -66,7 +66,7 @@ if choice == "Create Restaurant":
                 else:
                     i['addedToMenu'] = str(i['addedToMenu'])
               
-            print(platosCreate)
+            #print(platosCreate)
        
             url  = f'{st.session_state.host}/restaurants'
             
@@ -83,7 +83,7 @@ if choice == "Create Restaurant":
                 rating=0,
                 numReviews=0)
             
-            st.write(data)
+            #st.write(data)
             res = createRestaurant(data)
             #res = {'status': 200, 'message': 'Restaurant created successfully!'}
             if res['status'] == 200:

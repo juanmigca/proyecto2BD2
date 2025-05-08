@@ -3,7 +3,6 @@ import streamlit as st
 
 st.session_state.host = 'http://127.0.0.1:8000'
 
-
 st.set_page_config(page_title='Restaurant reviewer', page_icon='🍗', layout='wide', initial_sidebar_state='auto')
 
 

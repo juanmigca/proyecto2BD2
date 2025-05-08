@@ -10,7 +10,8 @@ from helpers.restaurantFunctions import queryRestaurants
 from helpers.orderFunctions import queryOrders
 from utils.models import Review
 
-st.session_state.review_data = Review()
+if "review_data" not in st.session_state:
+    st.session_state.review_data = Review()
 
 st.title("Reviews")
 

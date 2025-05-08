@@ -8,8 +8,18 @@ from helpers.orderFunctions import queryOrders, createOrder, updateOrder, delete
 from helpers.restaurantFunctions import queryRestaurants
 from utils.models import User, Order
 
-st.session_state.order_data = Order()
-st.session_state.temp_items = []
+if "order_data" not in st.session_state:
+    st.session_state.order_data = Order()
+
+if "userId" not in st.session_state:
+    st.session_state.userId = None
+if "restaurantId" not in st.session_state:
+    st.session_state.restaurantId = None
+if "temp_items" not in st.session_state:
+    st.session_state.temp_items = []
+if "selected_restaurant" not in st.session_state:
+        st.session_state.selected_restaurant = None
+
 
 st.title("Orders")
 
@@ -18,12 +28,13 @@ choice = st.selectbox("Select an option", menu)
 
 # Create Order
 if choice == "Create Order":
+    
+ 
     with st.form(key='create_order_form'):
 
         restaurants = queryRestaurants(limit=1000)
         st.subheader("Create Order")
-        #order_id = st.number_input("Order ID", min_value=1, step=1)
-        user_id = st.number_input("User ID", min_value=1, step=1)
+        user_id = st.number_input("User ID", min_value=1, step=1, key="user_id")
         restaurant_id = st.selectbox("Restaurant ID", [restaurant['id'] for restaurant in restaurants['data']])
         restaurant_selected = next((restaurant for restaurant in restaurants['data'] if restaurant['id'] == restaurant_id), None)
         
@@ -31,22 +42,21 @@ if choice == "Create Order":
         
             
 
-        submit_button = st.form_submit_button(label='Seleccionar Restaurante')
-        if submit_button:
-            st.session_state.order_data = Order(
-                id=None,
-                userId=int(user_id),
-                restaurantId=int(restaurant_id),
-                items=[]
+        submit_button_0 = st.form_submit_button(label='Seleccionar Restaurante')
+        if submit_button_0:
+            st.session_state.order_data.userId = int(user_id)
+            st.session_state.order_data.restaurantId = int(restaurant_id)
+            st.session_state.selected_restaurant = restaurant_selected
+           
             
-            )
         
     st.subheader("Order Items")
     with st.form(key='order_items_form'):
-        if restaurant_selected:
-            st.write(f"Selected Restaurant: {restaurant_selected['name']}")
+        if st.session_state.selected_restaurant:
+            
+            st.write(f"Selected Restaurant: {st.session_state.selected_restaurant['name']}")
             st.session_state.temp_items = []
-            menu_items = restaurant_selected.get('menuItems', [])
+            menu_items = st.session_state.selected_restaurant.get('menuItems', [])
             for item in menu_items:
                 item_id = item['id']
                 item_name = item['name']
@@ -61,40 +71,46 @@ if choice == "Create Order":
                         'addedToMenu': item.get('addedToMenu', None),
                         'quantity': quantity
                     })
-                    
-            
+          
 
-            submit_button = st.form_submit_button(label='Create Order')
-            if submit_button:
+            submit_button_1 = st.form_submit_button(label='Create Order')
+            if submit_button_1:
+                
                 # keep only latest for each item
                 st.session_state.order_data.items = []
                 for item in st.session_state.temp_items:
                     if item not in st.session_state.order_data.items:
                         st.session_state.order_data.items.append(item)
+                       
                 st.session_state.order_data.subtotal = sum(item['price'] * item['quantity'] for item in st.session_state.order_data.items)
                 st.session_state.order_data.tax = 0.12 * st.session_state.order_data.subtotal
+                st.session_state.order_data.userId = int(user_id)
+                st.session_state.order_data.restaurantId = int(restaurant_id)
     
     st.subheader("Order Summary")
     with st.form(key='order_summary_form'):
+        st.write(st.session_state.userId)
+        st.write(st.session_state.restaurantId)
         if st.session_state.order_data.items:
             st.write("Items:")
             for item in st.session_state.order_data.items:
                 st.write(f"{item['name']} (ID: {item['id']}) - Quantity: {item['quantity']} - Price: ${item['price']:.2f}")
             st.write(f"Subtotal: ${st.session_state.order_data.subtotal:.2f}")
             st.write(f"Tax: ${st.session_state.order_data.tax:.2f}")
-        
-            tip = st.number_input("Tip", min_value=0.0, step=0.01, format="%.2f")
+        order_tip = st.number_input("Tip", min_value=0.0, step=0.01, format="%.2f")
+        st.write(st.session_state.order_data)
 
-        submit_button = st.form_submit_button(label='Submit Order')
-        if submit_button:
-            st.session_state.order_data.tip = tip
-            st.session_state.order_data.total = st.session_state.order_data.subtotal + st.session_state.order_data.tax + tip
+        submit_button_2 = st.form_submit_button(label='Submit Order')
+        if submit_button_2:
+            st.session_state.order_data.tip = order_tip
+            
+            st.session_state.order_data.total = st.session_state.order_data.subtotal + st.session_state.order_data.tax + st.session_state.order_data.tip
             res = createOrder(st.session_state.order_data)
-            #st.write(st.session_state.order_data)
+   
             if res and res['status'] == 200:
-                st.success("Order created successfully! Total: ${:.2f}".format(st.session_state.order_data.subtotal + st.session_state.order_data.tax + tip))
+                st.success("Order created successfully! Total: ${:.2f}".format(st.session_state.order_data.subtotal + st.session_state.order_data.tax + st.session_state.order_data.tip))
             else:
-                #st.write(res)
+                st.write(res)
                 st.error("Error creating order.")
   
 
