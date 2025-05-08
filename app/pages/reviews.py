@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from helpers.reviewFunctions import queryReviews, createReview, updateReview, deleteReview
+from helpers.reviewFunctions import queryReviews, createReview, updateReview, deleteReview, display_review_card
 from helpers.userFunctions import queryUsers
 from helpers.restaurantFunctions import queryRestaurants
 from helpers.orderFunctions import queryOrders
@@ -40,18 +40,23 @@ if choice == "Create Review":
                     st.error("User ID and Restaurant ID are required")
 
                 user_id = int(user_id)
+                #st.write(f"User ID: {user_id}")
                 restaurant_id = int(restaurant_id)
-                order_id = int(order_id) if order_id else None
-                user_doc = queryUsers(user_id=user_id, limit=1)[0]
+                #st.write(f"Restaurant ID: {restaurant_id}")
+                order_id = int(order_id) if order_id != "" else None
+                #st.write(f"Order ID: {order_id}")
+                user_doc = queryUsers(id=user_id, limit=1)['data'][0]
+                #st.write(f"User Document: {user_doc}")
                 if not user_doc:
                     st.error("User not found")
                 else:
                     st.session_state.review_data.userId = user_id
-                restaurant_doc = queryRestaurants(restaurant_id=restaurant_id, limit=1)[0]
+                restaurant_doc = queryRestaurants(id=restaurant_id, limit=1)['data'][0]
+                #st.write(f"Restaurant Document: {restaurant_doc}")
                 if not restaurant_doc:
                     st.error("Restaurant not found")
                 if order_id is not None:
-                    order_doc = queryOrders(id=order_id, limit=1)[0]
+                    order_doc = queryOrders(id=order_id, limit=1)['data'][0]
                     if order_doc.get('userId') != user_id or order_doc.get('restaurantId') != restaurant_id:
                         st.error("Order does not belong to the user or restaurant")
                 if not user_doc or not restaurant_doc:
@@ -61,7 +66,7 @@ if choice == "Create Review":
                         id=None,
                         userId=int(user_id),
                         restaurantId=int(restaurant_id),
-                        orderId=int(order_id),
+                        orderId=int(order_id) if order_id else None,
                         stars=stars,
                         comment=comment
                     )
@@ -71,6 +76,7 @@ if choice == "Create Review":
                     if res and res['status'] == 200:
                         st.success("Review created successfully!")
                     else:
+                        st.write(res)
                         st.error("Error creating review")
             except:
                 st.error("IDs must be integers")
@@ -80,7 +86,8 @@ elif choice == "Find Reviews":
     search_id = st.text_input("Search by Review ID")
     search_user_id = st.text_input("Search by User ID")
     search_restaurant_id = st.text_input("Search by Restaurant ID")
-    search_rating = st.selectbox("Search by Rating", ["", 1, 2, 3, 4, 5])
+    search_order_id = st.text_input("Search by Order ID")
+    search_rating = st.selectbox("Search by Rating", ["", 1, 2, 3, 4, 5,6,7,8,9,10])
     limit = st.number_input("Limit", min_value=1, max_value=100, value=10)
 
     if st.button("Find Reviews"):
@@ -88,14 +95,18 @@ elif choice == "Find Reviews":
             ids = [int(i) for i in search_id.split(",")] if "," in search_id else int(search_id) if search_id else None
             user_ids = [int(i) for i in search_user_id.split(",")] if "," in search_user_id else int(search_user_id) if search_user_id else None
             rest_ids = [int(i) for i in search_restaurant_id.split(",")] if "," in search_restaurant_id else int(search_restaurant_id) if search_restaurant_id else None
+            order_ids = [int(i) for i in search_order_id.split(",")] if "," in search_order_id else int(search_order_id) if search_order_id else None
             rating = int(search_rating) if search_rating else None
 
-            data = queryReviews(ids, user_ids, rest_ids, rating, limit)
+            data = queryReviews(ids, user_ids, rest_ids, order_ids, rating, limit)
             if data and data['status'] == 200:
                 st.session_state.reviews = data['data']
+                
                 if st.session_state.reviews:
-                    for r in st.session_state.reviews:
-                        st.write(f"ID: {r['id']}, User: {r['userId']}, Restaurant: {r['restaurantId']}, Stars: {r['stars']}, Comment: {r['comment']}")
+                    cols = st.columns(3)
+                    for i, review in enumerate(st.session_state.reviews):
+                        with cols[i % 3]:
+                            display_review_card(review)
                 else:
                     st.info("No reviews found.")
             else:

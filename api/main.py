@@ -9,7 +9,7 @@ from api.helpers.menuItems import getMenuItems, createMenuItem, updateMenuItem, 
 from api.helpers.ingredients import getIngredients, createIngredient, updateIngredient, deleteIngredient, deleteMultipleIngredient, multipleUpdateIngredient
 from api.helpers.cuisines import getCuisine, createCuisine, updateCuisine, updateMultipleCuisine, deleteCuisine, deleteMultipleCuisine
 from api.helpers.user import getUser, createUser, createMultiplUsers, updateUser, updateMultipleUsers, deleteUser, deleteMultipleUsers, updateUserOrderCount, updateUserReviewCount, updateUserOrderReviewCount, updateUserVisitedRestaurants
-from api.helpers.review import get_review, createReview, updateReview, updateMultipleReviews, deleteReview, deleteMultipleReviews
+from api.helpers.review import getReview, createReview, updateReview, updateMultipleReviews, deleteReview, deleteMultipleReviews
 from api.helpers.order import getOrders, createOrder, updateOrder, updateMultipleOrders, deleteOrder, deleteMultipleOrders
 from utils.models import Restaurant, User, Review, Order, MenuItem, Ingredient, Cuisines
 from api.helpers.formularios import get_formulario
@@ -684,6 +684,7 @@ def get_orders(
 def get_reviews(
     id: Union[str, list, None] = Query(default=None),
     user_id: Union[str, list, None] = Query(default=None),
+    order_id: Union[str, list, None] = Query(default=None),
     restaurant_id: Union[str, list, None] = Query(default=None),
     rating: Union[str, list, None] = Query(default=None),
     limit: int = Query(default=10)
@@ -692,7 +693,7 @@ def get_reviews(
     if collection is None:
         return {'status': 502, 'message': 'Error connecting to collection'}
     try:
-        reviews = get_review(collection, id, user_id, restaurant_id, rating, limit)
+        reviews = getReview(collection, id, user_id, order_id, restaurant_id, rating, limit)
     except:
         return {'status': 500, 'message': 'Query execution error'}
     return {'status': 200, 'data': reviews}
@@ -841,3 +842,85 @@ def get_summary(tipo: str):
     except:
         return {'status': 500, 'message': 'Query execution error'}
     return {'status': 200, 'data': content}
+
+### Ingredients
+
+@app.post("/ingredients")
+def create_ingredient(ingredient: Ingredient):
+    """
+    Creates an ingredient.
+    """
+    collection = getCollection(mongo_client, db, 'ingredients')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        createIngredient(collection, ingredient)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error creating ingredient'}
+    return {'status': 200, 'message': 'Ingredient created'}
+
+@app.patch("/ingredients")
+def update_ingredient(find_name: Union[str, None] = Query(default=None), ingredient: Ingredient = Ingredient):
+    """
+    Updates an ingredient.
+    """
+    collection = getCollection(mongo_client, db, 'ingredients')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        updateIngredient(collection, find_name, ingredient)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating ingredient'}
+    return {'status': 200, 'message': 'Ingredient updated'}
+
+@app.patch("/batch/ingredients")
+def update_multiple_ingredients(find_name:Union[list, str, None] = Query(default=None), ingredient: Ingredient = Ingredient):
+    """
+    Updates multiple ingredients.
+    """
+    collection = getCollection(mongo_client, db, 'ingredients')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        multipleUpdateIngredient(collection, names, ingredient)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error updating ingredients'}
+    return {'status': 200, 'message': 'Ingredients updated'}
+
+@app.delete("/ingredients")
+def delete_ingredient(find_name: Union[str,None] = Query(default=None)):
+    """
+    Deletes a single ingredient.
+    """
+    collection = getCollection(mongo_client, db, 'ingredients')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        deleteIngredient(collection, find_name)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error deleting ingredient'}
+    return {'status': 200, 'message': 'Ingredient deleted'}
+
+@app.delete("/batch/ingredients")
+def delete_multiple_ingredients(find_name: Union[str, list, None] = Query(default=None)):
+    """
+    Deletes multiple ingredients.
+    """
+    collection = getCollection(mongo_client, db, 'ingredients')
+    if collection is None:
+        return {'status': 502, 'message': 'Error connecting to collection'}
+    try:
+        deleteMultipleIngredient(collection, find_name)
+    except ValueError as e:
+        return {'status': 500, 'message': str(e)}
+    except:
+        return {'status': 500, 'message': 'Error deleting ingredients'}
+    return {'status': 200, 'message': 'Ingredients deleted'}

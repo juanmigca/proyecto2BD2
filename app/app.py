@@ -10,6 +10,7 @@ pages_nav = [
     st.Page("pages/home.py", title='Home'),
     st.Page("pages/restaurants.py", title='Restaurants'),
     st.Page("pages/menuItems.py", title='Menu Items'),
+    st.Page("pages/ingredients.py", title='Ingredients'),
     st.Page("pages/users.py", title='Users'),
     st.Page("pages/orders.py", title='Orders'),
     st.Page("pages/reviews.py", title='Reviews'),

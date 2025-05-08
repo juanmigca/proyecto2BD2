@@ -55,9 +55,7 @@ def createIngredient(collection, ingredient=Ingredient):
         raise ValueError('Collection is None')
     ingredient_dict = ingredient.model_dump()
 
-    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
-    
-    ingredient_dict["id"] = new_id
+   
         
     result = collection.insert_one(ingredient_dict)
     return {"inserted_id": str(result.inserted_id)}
@@ -72,7 +70,7 @@ def createMultipleIngredient(collection, ingredient=Ingredient):
     result = collection.insert_many(ingredient_dict)
     return {"inserted_ids": [str(id) for id in result.inserted_ids]}
 
-def updateIngredient(collection, ingredient=Ingredient):
+def updateIngredient(collection, name, ingredient=Ingredient):
     """
     Updates an existing ingredient in the database.
     """
@@ -80,10 +78,10 @@ def updateIngredient(collection, ingredient=Ingredient):
         raise ValueError('Collection is None')
     ingredient_dict = ingredient.model_dump()
     ingredient_dict = {k: v for k, v in ingredient_dict.items() if v is not None}
-    result = collection.update_one({"_id": (ingredient_dict["_id"])}, {"$set": ingredient_dict})
+    result = collection.update_one({"name": name}, {"$set": ingredient_dict})
     return {"modified_count": result.modified_count}
 
-def multipleUpdateIngredient(collection,id,ingredients=Ingredient):
+def multipleUpdateIngredient(collection,names,ingredients=Ingredient):
     """
     Updates multiple ingredients in the database.
     """
@@ -91,23 +89,23 @@ def multipleUpdateIngredient(collection,id,ingredients=Ingredient):
         raise ValueError('Collection is None')
     ingredients_dict = ingredients.model_dump()
     ingredient_dict = {k: v for k, v in ingredient_dict.items() if v is not None}
-    result = collection.update_many({"_id": {"$in": [ObjectId(id) for id in ingredients_dict["_id"]]}}, {"$set": ingredients_dict})
+    result = collection.update_many({"name": {"$in": [name for name in names]}}, {"$set": ingredients_dict})
     return {"modified_count": result.modified_count}
 
-def deleteIngredient(collection, id):
+def deleteIngredient(collection, name):
     """
     Deletes an ingredient from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_one({"_id": ObjectId(id)})
+    result = collection.delete_one({"name": name})
     return {"deleted_count": result.deleted_count}
 
-def deleteMultipleIngredient(collection, ids):
+def deleteMultipleIngredient(collection, names):
     """
     Deletes multiple ingredients from the database.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    result = collection.delete_many({"_id": {"$in": [ObjectId(id) for id in ids]}})
+    result = collection.delete_many({"name": {"$in": [name for name in names]}})
     return {"deleted_count": result.deleted_count}

@@ -13,12 +13,13 @@ def urlBuilder(url, params=None):
                 url += f'{k}={v}&'
     return url[:-1]
 
-def queryReviews(id=None, user_id=None, restaurant_id=None, rating=None, limit=10):
+def queryReviews(id=None, user_id=None, restaurant_id=None, order_id=None, rating=None, limit=10):
     url = f"{st.session_state.host}/reviews"
     params = {
         "id": id,
         "user_id": user_id,
         "restaurant_id": restaurant_id,
+        "order_id": order_id,
         "rating": rating,
         "limit": limit
     }

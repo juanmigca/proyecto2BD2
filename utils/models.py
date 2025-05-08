@@ -11,13 +11,15 @@ class Status(str, Enum):
     PENDING = "En Camino"
     CANCELED = "Cancelado"
 
+
+
 class Location(BaseModel):
     type: Optional[str] = None
     coordinates: Optional[List[float]] = None
     
     
 class Ingredient(BaseModel):
-    id: Optional[int] = None
+    #id: Optional[int] = None
     name: Optional[str] = None
     amount: Optional[float] = 0.0
     unitMeasure: Optional[str] = None

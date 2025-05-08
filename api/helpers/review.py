@@ -35,20 +35,21 @@ def queryBuilder(id=None, user_id=None, order_id=None, restaurant_id=None, ratin
             args['restaurantId'] = int(restaurant_id)
     if rating is not None:
         if isinstance(rating, list) and len(rating) > 1:
-            args['stars'] = {"$in": [rating for rating in rating]}
+            args['stars'] = {"$in": [int(rating) for rating in rating]}
         elif isinstance(rating, list) and len(rating) == 1:
-            args['stars'] = rating[0]
+            args['stars'] = int(rating[0])
         else:
-            args['stars'] = rating
+            args['stars'] = int(rating)
     return args
 
-def get_review(collection, id=None, user_id=None, restaurant_id=None, rating=None, limit=10):
+def getReview(collection, id=None, user_id=None, order_id=None, restaurant_id=None, rating=None, limit=10):
     """
     Returns a list of reviews.
     """
     if collection is None:
         raise ValueError('Collection is None')
-    args = queryBuilder(id, user_id, restaurant_id, rating)
+    args = queryBuilder(id, user_id, order_id, restaurant_id, rating)
+    print(args)
     cursor = collection.find(args).limit(limit)
     reviews = []
     for review in cursor:
