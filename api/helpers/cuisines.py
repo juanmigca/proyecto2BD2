@@ -48,9 +48,8 @@ def createCuisine(collection, cuisine=Cuisines):
     if collection is None:
         raise ValueError('Collection is None')
     cuisine_dict = cuisine.model_dump()
-    existing_cuisine = collection.find_one({"_id": cuisine_dict["_id"]})
-    if existing_cuisine:
-        raise ValueError("Cuisine already exists")  # Item already exists, return None or handle as needed
+    new_id = collection.find_one({}, sort=[("id", -1)]).get("id", 0) + 1
+    cuisine_dict["id"] = new_id
     result = collection.insert_one(cuisine_dict)
     return {"inserted_id": str(result.inserted_id)}
 

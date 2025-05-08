@@ -9,6 +9,7 @@ st.set_page_config(page_title='Restaurant reviewer', page_icon='🍗', layout='w
 pages_nav = [
     st.Page("pages/home.py", title='Home'),
     st.Page("pages/restaurants.py", title='Restaurants'),
+    st.Page("pages/cuisines.py", title='Cuisines'),
     st.Page("pages/menuItems.py", title='Menu Items'),
     st.Page("pages/ingredients.py", title='Ingredients'),
     st.Page("pages/users.py", title='Users'),

@@ -230,7 +230,7 @@ def create_cuisine(cuisine: Cuisines):
     return {'status': 200, 'data': createCuisine(collection, cuisine)}
 
 @app.patch("/cuisines")
-def update_cuisine(id: str, cuisine: Cuisines):
+def update_cuisine(id: Union[str, None] = Query(default=None), cuisine: Cuisines = Cuisines):
     """
     Updates a cuisine.
     """
@@ -238,7 +238,7 @@ def update_cuisine(id: str, cuisine: Cuisines):
     return {'status': 200, 'data': updateCuisine(collection, id, cuisine)}
 
 @app.delete("/cuisines")
-def delete_cuisine(id: str):
+def delete_cuisine(id: Union[str, None] = Query(default=None)):
     """
     Deletes a cuisine.
     """
@@ -246,12 +246,13 @@ def delete_cuisine(id: str):
     return {'status': 200, 'data': deleteCuisine(collection, id)}
 
 @app.patch("/batch/cuisines")
-def update_multiple_cuisines(ids: list[str], cuisine: Cuisines):
+def update_multiple_cuisines(ids: Union[list, str, None] = Query(default=None), cuisine: Cuisines = Cuisines):
     collection = getCollection(mongo_client, db, 'cuisines')
     return {'status': 200, 'data': updateMultipleCuisine(collection, ids, cuisine)}
 
 @app.delete("/batch/cuisines")
-def delete_multiple_cuisines(ids: list[str]):
+def delete_multiple_cuisines(ids: Union[list, str, None] = Query(default=None)):
+
     collection = getCollection(mongo_client, db, 'cuisines')
     return {'status': 200, 'data': deleteMultipleCuisine(collection, ids)}
 
@@ -677,7 +678,7 @@ def get_orders(
         return {'status': 500, 'message': 'Query execution error'}
     return {'status': 200, 'data': orders}
 
-### 
+### Reviews
 
 
 @app.get("/reviews")
